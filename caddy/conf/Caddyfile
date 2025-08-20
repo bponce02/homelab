@@ -1,7 +1,4 @@
-{
-	auto_https off
-}
 
-localhost {
+:80 {
     respond "Hello World!"
 }
