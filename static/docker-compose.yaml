@@ -1,0 +1,12 @@
+services:
+  test-web-server:
+    image: nginx:latest
+    container_name: test-web-server
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+    restart: unless-stopped
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true

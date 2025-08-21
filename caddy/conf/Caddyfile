@@ -1,4 +1,4 @@
 
-:80 {
-    respond "Hello World!"
+ponce.casa {
+    reverse_proxy test-web-server
 }

@@ -10,7 +10,11 @@ services:
       - ./conf:/etc/caddy
       - caddy_data:/data
       - caddy_config:/config
-
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true
 volumes:
   caddy_data:
   caddy_config:

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worst Webpage Ever!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e5799, #207cca, #2989d8, #7db9e8);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+        }
+
+        .win-text {
+            font-size: 8rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: pulse 2s infinite, bounce 1s ease-in-out;
+            position: relative;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+            50% { text-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 30px #ff00ff; }
+            100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-30px); }
+            60% { transform: translateY(-15px); }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            top: -20px; /* Start above the viewport */
+            animation: confetti-fall 5s linear infinite;
+            opacity: 0; /* Start invisible */
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+            5% { opacity: 1; } /* Fade in after starting to fall */
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        .trophy {
+            font-size: 5rem;
+            margin-top: 2rem;
+            animation: rotate 3s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+            100% { transform: rotate(-10deg); }
+        }
+
+        .button {
+            margin-top: 3rem;
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            background-color: #ffcc00;
+            color: #333;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: button-pulse 2s infinite;
+        }
+
+        .button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.8);
+        }
+
+        @keyframes button-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 204, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="win-text">CLICK HERE TO SEE THE WORST WEBPAGE EVER!</h1>
+        <div class="trophy">🏆</div>
+        <button class="button">CLICK ME</button>
+    </div>
+
+    <script>
+        // Create confetti
+        function createConfetti() {
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            const container = document.querySelector('body');
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = Math.random() * 10 + 5 + 'px';
+                confetti.style.height = Math.random() * 10 + 5 + 'px';
+                confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                confetti.style.animationDelay = Math.random() * 5 + 's';
+                
+                container.appendChild(confetti);
+            }
+        }
+
+        // Play sound effect
+        function playWinSound() {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3');
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+
+        // Initialize animations
+        window.onload = function() {
+            createConfetti();
+            playWinSound();
+            
+            // Add button click event
+            document.querySelector('.button').addEventListener('click', function() {
+                window.location.href = 'https://www.austinmcrussell.com/';
+            });
+        };
+    </script>
+</body>
+</html>
