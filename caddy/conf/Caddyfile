@@ -1,4 +1,4 @@
 
-ponce.casa {
+ponce.casa:80 {
     reverse_proxy test-web-server:80
 }
