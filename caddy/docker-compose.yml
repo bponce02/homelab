@@ -10,6 +10,7 @@ services:
       - ./conf:/etc/caddy
       - caddy_data:/data
       - caddy_config:/config
+      - ../static:/srv
     networks:
       - proxy
 networks:

@@ -1,3 +1,8 @@
-ponce.casa {
-    reverse_proxy test-web-server:80
+{
+    auto_https off
+}
+
+http://ponce.casa {
+    root * /srv
+    file_server
 }
