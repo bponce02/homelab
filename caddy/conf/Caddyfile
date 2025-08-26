@@ -1,4 +1,3 @@
-
 ponce.casa {
-    reverse_proxy test-web-server
+    reverse_proxy test-web-server:80
 }
