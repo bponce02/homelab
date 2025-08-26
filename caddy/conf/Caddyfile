@@ -3,6 +3,5 @@
 }
 
 http://ponce.casa {
-    root * /srv
-    file_server
+    respond "Hello, World!" 
 }
