@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     networks:
       - proxy
+    ports:
+      - "443:443"
 networks:
   proxy:
     external: true

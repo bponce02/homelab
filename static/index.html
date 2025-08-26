@@ -7,7 +7,7 @@
     <style>
         body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,7 +16,8 @@
             background-size: 400% 400%;
             animation: gradient 15s ease infinite;
             font-family: 'Arial', sans-serif;
-            overflow: hidden;
+            overflow: auto;
+            box-sizing: border-box;
         }
 
         @keyframes gradient {
@@ -28,16 +29,23 @@
         .container {
             text-align: center;
             position: relative;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .win-text {
-            font-size: 8rem;
+            font-size: clamp(3rem, 8vw, 8rem);
             font-weight: bold;
             color: #fff;
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
             animation: pulse 2s infinite, bounce 1s ease-in-out;
             position: relative;
             z-index: 10;
+            word-wrap: break-word;
+            max-width: 90vw;
         }
 
         @keyframes pulse {
@@ -69,8 +77,8 @@
         }
 
         .trophy {
-            font-size: 5rem;
-            margin-top: 2rem;
+            font-size: 3rem;
+            margin-top: 1rem;
             animation: rotate 3s ease-in-out infinite;
             display: inline-block;
         }
@@ -82,9 +90,9 @@
         }
 
         .button {
-            margin-top: 3rem;
-            padding: 1rem 2rem;
-            font-size: 1.5rem;
+            margin-top: 1.5rem;
+            padding: 0.8rem 1.5rem;
+            font-size: 1.2rem;
             background-color: #ffcc00;
             color: #333;
             border: none;
