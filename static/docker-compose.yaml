@@ -4,9 +4,8 @@ services:
     container_name: test-web-server
     volumes:
       - ./index.html:/usr/share/nginx/html/index.html
+      - ./nginx.conf:/etc/nginx/nginx.conf
     restart: unless-stopped
-    environment:
-      - HTTPS_METHOD=noredirect
     networks:
       - proxy
 networks:
