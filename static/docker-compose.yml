@@ -8,8 +8,8 @@ services:
     volumes:
       - .:/usr/share/nginx/html:ro
     networks:
-      - web
+      - proxy
 
 networks:
-  web:
+  proxy:
     external: true

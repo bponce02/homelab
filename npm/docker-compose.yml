@@ -11,8 +11,8 @@ services:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
-      - web
+      - proxy
 
 networks:
-  web:
+  proxy:
     external: true
