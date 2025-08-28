@@ -1,4 +1,4 @@
 ponce.casa {
-    root * /static
+    root * /srv
     file_server
 }
