@@ -1,7 +1,4 @@
-{
-    auto_https off
-}
-
-http://ponce.casa {
-    respond "Hello, World!" 
+ponce.casa {
+    root * /static
+    file_server
 }
