@@ -1,4 +1,0 @@
-ponce.casa {
-    root * /srv
-    file_server
-}
