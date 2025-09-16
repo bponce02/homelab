@@ -1,11 +1,12 @@
-tinyauth:
-  image: ghcr.io/steveiliop56/tinyauth:v3
-  container_name: tinyauth
-  restart: unless-stopped
-  ports:
-    - "8888:80"
-  networks:
-    - proxy
+services:
+  tinyauth:
+    image: ghcr.io/steveiliop56/tinyauth:v3
+    container_name: tinyauth
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    networks:
+      - proxy
 
 networks:
   proxy:
