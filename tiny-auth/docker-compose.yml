@@ -6,7 +6,7 @@ services:
     ports:
       - "8888:80"
     env_file:
-      - ./env
+      - ./.env
     networks:
       - proxy
 
