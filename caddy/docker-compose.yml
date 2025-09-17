@@ -1,0 +1,22 @@
+services:
+
+  caddy:
+    build: ./dockerfile-caddy
+    container_name: caddy
+    hostname: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - MY_DOMAIN
+      - CLOUDFLARE_API_TOKEN
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+
+networks:
+  default:
+    name: proxy
+    external: true

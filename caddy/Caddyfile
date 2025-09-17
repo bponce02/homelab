@@ -1,0 +1,8 @@
+{
+  acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
+  auto_https prefer_wildcard
+}
+
+{$MY_DOMAIN} {
+    respond "Hello, world!"
+}
