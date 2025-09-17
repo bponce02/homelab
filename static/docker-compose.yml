@@ -4,7 +4,7 @@ services:
     container_name: static-web-server
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:80"
     volumes:
       - .:/usr/share/nginx/html:ro
     networks:
