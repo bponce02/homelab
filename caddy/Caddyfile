@@ -1,6 +1,9 @@
 {
   acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}
   auto_https prefer_wildcard
+  servers {
+    resolvers 1.1.1.1 8.8.8.8
+  }
 }
 
 {$MY_DOMAIN} {
