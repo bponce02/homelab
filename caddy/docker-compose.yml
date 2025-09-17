@@ -1,7 +1,7 @@
 services:
 
   caddy:
-    build: ./dockerfile-caddy
+    image: caddy:latest
     container_name: caddy
     hostname: caddy
     restart: unless-stopped
