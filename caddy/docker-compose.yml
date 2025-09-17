@@ -8,9 +8,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - MY_DOMAIN
-      - CLOUDFLARE_API_TOKEN
+    env_file:
+      - ./.env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./caddy_data:/data
