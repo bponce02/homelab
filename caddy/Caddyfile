@@ -1,3 +1,14 @@
+(tinyauth_forwarder) {
+    forward_auth tinyauth:3000 {
+        uri /api/auth/caddy
+        copy_headers Remote-User Remote-Name Remote-Email Remote-Groups
+    }
+}
 {$MY_DOMAIN} {
+    import tinyauth_forwarder
     reverse_proxy static-web-server:80
+}
+
+auth.{$MY_DOMAIN} {
+    reverse_proxy tinyauth:3000
 }
