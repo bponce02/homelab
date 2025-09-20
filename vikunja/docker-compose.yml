@@ -1,0 +1,19 @@
+services:
+  vikunja:
+    image: vikunja/vikunja
+    container_name: vikunja
+    restart: unless-stopped
+    environment:
+      VIKUNJA_SERVICE_JWTSECRET: ${VIKUNJA_JWT_SECRET}
+      VIKUNJA_SERVICE_PUBLICURL: https://tasks.${DOMAIN}/
+      VIKUNJA_DATABASE_PATH: /db/vikunja.db
+      VIKUNJA_SERVICE_ENABLEREGISTRATION: false  # Disable after initial setup
+    volumes:
+      - ./files:/app/vikunja/files
+      - ./db:/db
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
