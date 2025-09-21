@@ -15,11 +15,12 @@ http://auth.{$MY_DOMAIN} {
 }
 
 http://tasks.{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    reverse_proxy vikunja:3456 {
-        header_up X-User {http.request.header.Remote-User}
-        header_up X-Username {http.request.header.Remote-User}
-        header_up X-Email {http.request.header.Remote-Email}
-        header_up X-Name {http.request.header.Remote-Name}
+    @auth_endpoints path /api/v1/login* /api/v1/user/confirm*
+    handle @auth_endpoints {
+        reverse_proxy vikunja:3456
+    }
+    handle {
+        import tinyauth_forwarder
+        reverse_proxy vikunja:3456
     }
 }
