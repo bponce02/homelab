@@ -5,10 +5,8 @@ services:
     restart: unless-stopped
     volumes:
       - nextcloud_db:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_DB=nextcloud
-      - POSTGRES_USER=nextcloud
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    env_file:
+      - ./.env
     networks:
       - proxy
 
