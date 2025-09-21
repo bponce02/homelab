@@ -1,8 +1,23 @@
 services:
+  nextcloud-db:
+    image: postgres:15-alpine
+    container_name: nextcloud-db
+    restart: unless-stopped
+    volumes:
+      - nextcloud_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=nextcloud
+      - POSTGRES_USER=nextcloud
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    networks:
+      - proxy
+
   nextcloud:
     image: lscr.io/linuxserver/nextcloud:latest
     container_name: nextcloud
     restart: unless-stopped
+    depends_on:
+      - nextcloud-db
     env_file:
       - ./.env
     volumes:
@@ -12,6 +27,7 @@ services:
       - proxy
 
 volumes:
+  nextcloud_db:
   nextcloud_config:
   nextcloud_data:
 
