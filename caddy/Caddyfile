@@ -15,12 +15,5 @@ http://auth.{$MY_DOMAIN} {
 }
 
 http://tasks.{$MY_DOMAIN} {
-    @auth_endpoints path /api/v1/login* /api/v1/user/confirm*
-    handle @auth_endpoints {
-        reverse_proxy vikunja:3456
-    }
-    handle {
-        import tinyauth_forwarder
-        reverse_proxy vikunja:3456
-    }
+    reverse_proxy vikunja:3456
 }
