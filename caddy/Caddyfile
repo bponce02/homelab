@@ -17,3 +17,12 @@ http://auth.{$MY_DOMAIN} {
 http://tasks.{$MY_DOMAIN} {
     reverse_proxy vikunja:3456
 }
+
+http://nextcloud.{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy nextcloud:443 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}

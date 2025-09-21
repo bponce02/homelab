@@ -1,0 +1,20 @@
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    volumes:
+      - nextcloud_config:/config
+      - nextcloud_data:/data
+    networks:
+      - proxy
+
+volumes:
+  nextcloud_config:
+  nextcloud_data:
+
+networks:
+  proxy:
+    external: true
