@@ -31,3 +31,8 @@ http://actual.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy actual_server:5006
 }
+
+http://komodo.{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy komodo_core:9120
+}
