@@ -34,5 +34,9 @@ http://actual.{$MY_DOMAIN} {
 
 http://komodo.{$MY_DOMAIN} {
     import tinyauth_forwarder
-    reverse_proxy komodo_core:9120
+    reverse_proxy komodo_core:9120 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
 }
