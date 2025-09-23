@@ -19,6 +19,7 @@ services:
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
+    env_file: ./compose.env
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DB_PASSWORD}
