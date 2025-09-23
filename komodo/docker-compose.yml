@@ -26,6 +26,7 @@ services:
   
   core:
     image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-latest}
+    container_name: komodo_core
     labels:
       komodo.skip: # Prevent Komodo from stopping with StopAllContainers
     restart: unless-stopped
@@ -38,6 +39,9 @@ services:
       KOMODO_DATABASE_ADDRESS: mongo:27017
       KOMODO_DATABASE_USERNAME: ${KOMODO_DB_USERNAME}
       KOMODO_DATABASE_PASSWORD: ${KOMODO_DB_PASSWORD}
+    networks:
+      - default
+      - proxy
     volumes:
       ## Store dated backups of the database - https://komo.do/docs/setup/backup
       - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
@@ -69,6 +73,10 @@ services:
       ## or docker will get confused. See https://github.com/moghtech/komodo/discussions/180.
       ## Default: /etc/komodo.
       - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+
+networks:
+  proxy:
+    external: true
 
 volumes:
   # Mongo
