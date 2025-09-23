@@ -68,6 +68,12 @@ services:
       ## or docker will get confused. See https://github.com/moghtech/komodo/discussions/180.
       ## Default: /etc/komodo.
       - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
 
 volumes:
   # Mongo
