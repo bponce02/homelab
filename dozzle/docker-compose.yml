@@ -7,6 +7,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - 5555:8080
+    networks:
+      - proxy
       #environment:
       # Uncomment to enable container actions (stop, start, restart). See https://dozzle.dev/guide/actions
       # - DOZZLE_ENABLE_ACTIONS=true
@@ -16,3 +18,6 @@ services:
       #
       # Uncomment to enable authentication. See https://dozzle.dev/guide/authentication
       # - DOZZLE_AUTH_PROVIDER=simple
+networks:
+  proxy:
+    external: true
