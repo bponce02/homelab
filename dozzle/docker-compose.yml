@@ -5,8 +5,6 @@ services:
     image: amir20/dozzle:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    ports:
-      - 5555:8080
     networks:
       - proxy
       #environment:
