@@ -3,9 +3,3 @@ services:
     image: restic/restic:latest
     container_name: restic
     restart: unless-stopped
-    networks:
-      - proxy
-
-networks:
-  proxy:
-    external: true
