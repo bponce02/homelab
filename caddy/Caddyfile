@@ -36,3 +36,7 @@ http://komodo.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy http://komodo_core:9120
 }
+
+http://dozzle.{$MY_DOMAIN} {
+    reverse_proxy dozzle:5555
+}
