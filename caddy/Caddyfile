@@ -41,3 +41,8 @@ http://dozzle.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy dozzle:8080
 }
+
+http://pdf.{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy stirling-pdf:8080
+}
