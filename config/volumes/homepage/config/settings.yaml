@@ -1,0 +1,23 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/settings
+
+title: Develium Homelab
+favicon: https://cdn-icons-png.flaticon.com/512/2917/2917995.png
+
+background:
+  image: https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1920
+  blur: sm
+  saturate: 50
+  brightness: 50
+  opacity: 50
+
+layout:
+  - Homelab Services:
+      style: row
+      columns: 4
+
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: false
+  hideVisitURL: false
