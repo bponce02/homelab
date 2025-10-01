@@ -1,5 +1,0 @@
-services:
-  restic:
-    image: restic/restic:latest
-    container_name: restic
-    restart: unless-stopped
