@@ -45,4 +45,9 @@ http://pdf.{$MY_DOMAIN} {
 http://backrest.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy backrest:9898
-}   
+}
+
+http://homepage.{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy homepage:3000
+}
