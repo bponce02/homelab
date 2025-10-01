@@ -32,11 +32,6 @@ http://actual.{$MY_DOMAIN} {
     reverse_proxy actual_server:5006
 }
 
-http://komodo.{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    reverse_proxy http://komodo_core:9120
-}
-
 http://dozzle.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy dozzle:8080
@@ -47,14 +42,6 @@ http://pdf.{$MY_DOMAIN} {
     reverse_proxy stirling-pdf:8080
 }
 
-http://arcane.{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    reverse_proxy arcane:3552
-}
-http://dockge.{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    reverse_proxy dockge:5001
-}
 http://backrest.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy backrest:9898

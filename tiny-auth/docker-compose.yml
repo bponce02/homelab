@@ -4,7 +4,7 @@ services:
     container_name: tinyauth
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ../config/env/tinyauth/.env
     networks:
       - proxy
 

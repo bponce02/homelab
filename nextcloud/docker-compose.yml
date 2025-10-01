@@ -4,9 +4,9 @@ services:
     container_name: nextcloud-db
     restart: unless-stopped
     volumes:
-      - nextcloud_db:/var/lib/postgresql/data
+      - ../config/volumes/nextcloud/db:/var/lib/postgresql/data
     env_file:
-      - ./.env
+      - ../config/env/nextcloud/.env
     networks:
       - proxy
 
@@ -17,17 +17,12 @@ services:
     depends_on:
       - nextcloud-db
     env_file:
-      - ./.env
+      - ../config/env/nextcloud/.env
     volumes:
-      - nextcloud_config:/config
-      - nextcloud_data:/data
+      - ../config/volumes/nextcloud/config:/config
+      - ../config/volumes/nextcloud/data:/data
     networks:
       - proxy
-
-volumes:
-  nextcloud_db:
-  nextcloud_config:
-  nextcloud_data:
 
 networks:
   proxy:

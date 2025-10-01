@@ -8,11 +8,11 @@ services:
     ports:
       - "80:80"
     env_file:
-      - ./.env
+      - ../config/env/caddy/.env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./caddy_data:/data
-      - ./caddy_config:/config
+      - ../config/volumes/caddy/data:/data
+      - ../config/volumes/caddy/config:/config
     networks:
       - proxy
 

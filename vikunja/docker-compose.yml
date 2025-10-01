@@ -4,10 +4,10 @@ services:
     container_name: vikunja
     restart: unless-stopped
     env_file:
-      - ./.env
+      - ../config/env/vikunja/.env
     volumes:
-      - ./files:/app/vikunja/files
-      - ./db:/db
+      - ../config/volumes/vikunja/files:/app/vikunja/files
+      - ../config/volumes/vikunja/db:/db
     networks:
       - proxy
 
