@@ -4,11 +4,11 @@ services:
     container_name: backrest
     hostname: backrest.develium.dev
     volumes:
-      - ../configs/volumes/backrest/data:/data
-      - ../configs/volumes/backrest/config:/config
-      - ../configs/volumes/backrest/cache:/cache
-      - ../configs/volumes/backrest/tmp:/tmp
-      - ../configs/volumes/backrest/rclone:/root/.config/rclone # Mount for rclone config (needed when using rclone remotes)
+      - ../config/volumes/backrest/data:/data
+      - ../config/volumes/backrest/config:/config
+      - ../config/volumes/backrest/cache:/cache
+      - ../config/volumes/backrest/tmp:/tmp
+      - ../config/volumes/backrest/rclone:/root/.config/rclone # Mount for rclone config (needed when using rclone remotes)
       - /home/melissa/homelab/:/userdata  # Mount root directory to backup system
     environment:
       - BACKREST_DATA=/data
