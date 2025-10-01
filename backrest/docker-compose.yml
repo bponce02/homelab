@@ -9,7 +9,7 @@ services:
       - ./backrest/cache:/cache
       - ./backrest/tmp:/tmp
       - ./backrest/rclone:/root/.config/rclone # Mount for rclone config (needed when using rclone remotes)
-      - /:/userdata  # Mount root directory to backup system
+      - /home/melissa/homelab/:/userdata  # Mount root directory to backup system
     environment:
       - BACKREST_DATA=/data
       - BACKREST_CONFIG=/config/config.json
