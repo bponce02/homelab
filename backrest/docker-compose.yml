@@ -2,7 +2,7 @@ services:
   backrest:
     image: garethgeorge/backrest:latest
     container_name: backrest
-    hostname: backrest
+    hostname: backrest.develium.dev
     volumes:
       - ./backrest/data:/data
       - ./backrest/config:/config
