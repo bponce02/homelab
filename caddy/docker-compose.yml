@@ -13,6 +13,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../config/volumes/caddy/data:/data
       - ../config/volumes/caddy/config:/config
+      - ../config/volumes/blog:/srv/blog:ro
     networks:
       - proxy
 
