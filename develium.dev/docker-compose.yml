@@ -8,6 +8,8 @@ services:
       - ../config/volumes/blog/db.sqlite3:/app/db.sqlite3
     networks:
       - proxy
+    env_file:
+      - ../config/env/blog/.env
 networks:
   proxy:
     external: true
