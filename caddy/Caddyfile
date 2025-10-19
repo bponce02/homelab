@@ -51,3 +51,8 @@ http://homepage.{$MY_DOMAIN} {
     import tinyauth_forwarder
     reverse_proxy homepage:3000
 }
+
+http://{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy blog:8000
+}
