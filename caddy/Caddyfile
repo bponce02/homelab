@@ -48,8 +48,6 @@ http://homepage.{$MY_DOMAIN} {
 }
 
 http://{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    
     handle /static/* {
         root * /srv/blog
         file_server
@@ -58,6 +56,11 @@ http://{$MY_DOMAIN} {
     handle /media/* {
         root * /srv/blog
         file_server
+    }
+    
+    handle /admin* {
+        import tinyauth_forwarder
+        reverse_proxy blog:8000
     }
     
     reverse_proxy blog:8000
