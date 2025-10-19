@@ -5,11 +5,6 @@
     }
 }
 
-http://{$MY_DOMAIN} {
-    import tinyauth_forwarder
-    reverse_proxy static-web-server:80
-}
-
 http://auth.{$MY_DOMAIN} {
     reverse_proxy tinyauth:3000
 }
