@@ -71,3 +71,8 @@ http://llm.{$MY_DOMAIN} {
     reverse_proxy open-webui:8080
 }
 
+http://n8n.{$MY_DOMAIN} {
+    import tinyauth_forwarder
+    reverse_proxy n8n:5678
+}
+
