@@ -7,7 +7,7 @@ services:
       - OLLAMA_NUM_GPU=0             # set 0 for CPU-only, omit if you have a GPU
       - OLLAMA_NUM_THREADS=${THREADS:-2}
     volumes:
-      - ../config/volumes/llm/ollama:/root/.ollama
+      - ./ollama:/root/.ollama
     networks:
       - proxy
 
