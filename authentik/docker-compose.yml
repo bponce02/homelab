@@ -1,0 +1,72 @@
+services:
+  postgresql:
+    container_name: authentik-db
+    env_file:
+    - ../config/env/authentik/.env
+    environment:
+      POSTGRES_DB: ${PG_DB:-authentik}
+      POSTGRES_PASSWORD: ${PG_PASS:?database password required}
+      POSTGRES_USER: ${PG_USER:-authentik}
+    healthcheck:
+      interval: 30s
+      retries: 5
+      start_period: 20s
+      test:
+      - CMD-SHELL
+      - pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+      timeout: 5s
+    image: docker.io/library/postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+    - ../config/volumes/authentik/db:/var/lib/postgresql/data
+    networks:
+    - proxy
+  server:
+    container_name: authentik-server
+    command: server
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+    - ../config/env/authentik/.env
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10.1}
+    restart: unless-stopped
+    volumes:
+    - ../config/volumes/authentik/media:/media
+    - ../config/volumes/authentik/custom-templates:/templates
+    networks:
+    - proxy
+  worker:
+    container_name: authentik-worker
+    command: worker
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+    - ../config/env/authentik/.env
+    environment:
+      AUTHENTIK_POSTGRESQL__HOST: postgresql
+      AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
+      AUTHENTIK_POSTGRESQL__USER: ${PG_USER:-authentik}
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10.1}
+    restart: unless-stopped
+    user: root
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ../config/volumes/authentik/media:/media
+    - ../config/volumes/authentik/certs:/certs
+    - ../config/volumes/authentik/custom-templates:/templates
+    networks:
+    - proxy
+
+networks:
+  proxy:
+    external: true
