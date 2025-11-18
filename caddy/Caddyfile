@@ -77,6 +77,7 @@ http://n8n.{$MY_DOMAIN} {
 }
 
 http://authentik.{$MY_DOMAIN} {
-    reverse_proxy authentik-server:9000
+    import tinyauth_forwarder
+    reverse_proxy authentik-server:9443
 }
 
