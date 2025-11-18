@@ -3,10 +3,6 @@ services:
     container_name: authentik-db
     env_file:
     - ../config/env/authentik/.env
-    environment:
-      POSTGRES_DB: $PG_DB
-      POSTGRES_PASSWORD: $PG_PASS
-      POSTGRES_USER: $PG_USER
     healthcheck:
       interval: 30s
       retries: 5
@@ -29,12 +25,6 @@ services:
         condition: service_healthy
     env_file:
     - ../config/env/authentik/.env
-    environment:
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__NAME: $PG_DB
-      AUTHENTIK_POSTGRESQL__PASSWORD: $PG_PASS
-      AUTHENTIK_POSTGRESQL__USER: $PG_USER
-      AUTHENTIK_SECRET_KEY: $AUTHENTIK_SECRET_KEY
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10.1}
     restart: unless-stopped
     volumes:
@@ -50,12 +40,6 @@ services:
         condition: service_healthy
     env_file:
     - ../config/env/authentik/.env
-    environment:
-      AUTHENTIK_POSTGRESQL__HOST: postgresql
-      AUTHENTIK_POSTGRESQL__NAME: $PG_DB
-      AUTHENTIK_POSTGRESQL__PASSWORD: $PG_PASS
-      AUTHENTIK_POSTGRESQL__USER: $PG_USER
-      AUTHENTIK_SECRET_KEY: $AUTHENTIK_SECRET_KEY
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.10.1}
     restart: unless-stopped
     user: root
