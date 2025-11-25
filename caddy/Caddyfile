@@ -79,6 +79,8 @@ http://n8n.{$MY_DOMAIN} {
 http://authentik.{$MY_DOMAIN} {
     reverse_proxy authentik-server:9000 {
         header_up X-Forwarded-Proto https
+        header_up X-Forwarded-For {remote_host}
+        header_up Host {host}
     }
 }
 
