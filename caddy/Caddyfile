@@ -1,10 +1,3 @@
-(tinyauth_forwarder) {
-    forward_auth tinyauth:3000 {
-        uri /api/auth/caddy
-        copy_headers Remote-User Remote-Name Remote-Email Remote-Groups
-    }
-}
-
 (authentik_forwarder) {
     reverse_proxy /outpost.goauthentik.io/* authentik-server:9000 {
         header_up X-Forwarded-Proto https
@@ -17,16 +10,12 @@
     }
 }
 
-http://auth.{$MY_DOMAIN} {
-    reverse_proxy tinyauth:3000
-}
-
 http://tasks.{$MY_DOMAIN} {
     reverse_proxy vikunja:3456
 }
 
 http://nextcloud.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy nextcloud:443 {
         transport http {
             tls_insecure_skip_verify
@@ -35,17 +24,17 @@ http://nextcloud.{$MY_DOMAIN} {
 }
 
 http://actual.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy actual_server:5006
 }
 
 http://dozzle.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy dozzle:8080
 }
 
 http://pdf.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy stirling-pdf:8080
 }
 
@@ -55,7 +44,7 @@ http://backrest.{$MY_DOMAIN} {
 }
 
 http://homepage.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy homepage:3000
 }
 
@@ -71,7 +60,7 @@ http://{$MY_DOMAIN} {
     }
     
     handle /admin* {
-        import tinyauth_forwarder
+        import authentik_forwarder
         reverse_proxy blog:8000
     }
     
@@ -79,12 +68,12 @@ http://{$MY_DOMAIN} {
 }
 
 http://llm.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy open-webui:8080
 }
 
 http://n8n.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy n8n:5678
 }
 
