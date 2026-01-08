@@ -5,6 +5,15 @@
     }
 }
 
+(authentik_forwarder) {
+    reverse_proxy /outpost.goauthentik.io/* authentik-server:9000
+    forward_auth authentik-server:9000 {
+        uri /outpost.goauthentik.io/auth/caddy
+        copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+        trusted_proxies private_ranges
+    }
+}
+
 http://auth.{$MY_DOMAIN} {
     reverse_proxy tinyauth:3000
 }
@@ -38,7 +47,7 @@ http://pdf.{$MY_DOMAIN} {
 }
 
 http://backrest.{$MY_DOMAIN} {
-    import tinyauth_forwarder
+    import authentik_forwarder
     reverse_proxy backrest:9898
 }
 
@@ -77,10 +86,6 @@ http://n8n.{$MY_DOMAIN} {
 }
 
 http://authentik.{$MY_DOMAIN} {
-    reverse_proxy authentik-server:9000 {
-        header_up X-Forwarded-Proto https
-        header_up X-Forwarded-For {remote_host}
-        header_up Host {host}
-    }
+    reverse_proxy authentik-server:9000
 }
 
