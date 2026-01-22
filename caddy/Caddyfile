@@ -83,3 +83,8 @@ http://authentik.{$MY_DOMAIN} {
     }
 }
 
+http://paperless.{$MY_DOMAIN} {
+    import authentik_forwarder
+    reverse_proxy paperless-webserver:8000
+}
+

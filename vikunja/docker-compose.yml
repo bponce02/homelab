@@ -8,6 +8,7 @@ services:
     volumes:
       - ../config/volumes/vikunja/files:/app/vikunja/files
       - ../config/volumes/vikunja/db:/db
+      - ../config/volumes/vikunja/config:/etc/vikunja
     networks:
       - proxy
 
