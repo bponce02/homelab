@@ -8,6 +8,7 @@ services:
       - SSHHOST=localhost
       - SSHPORT=22
       - SSHUSER=melissa
+      - BASE=/
     volumes:
       - ../config/volumes/wetty:/home/term
     networks:
