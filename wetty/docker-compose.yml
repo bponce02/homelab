@@ -1,0 +1,18 @@
+services:
+  wetty:
+    image: wettyoss/wetty:latest
+    container_name: wetty
+    hostname: wetty.develium.dev
+    restart: unless-stopped
+    environment:
+      - SSHHOST=localhost
+      - SSHPORT=22
+      - SSHUSER=melissa
+    volumes:
+      - ../config/volumes/wetty:/home/term
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
