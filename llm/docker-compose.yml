@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=false
     volumes:
       - ../config/volumes/llm/openwebui:/app/backend/data
     networks:
