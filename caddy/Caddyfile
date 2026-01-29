@@ -89,7 +89,11 @@ http://paperless.{$MY_DOMAIN} {
 }
 
 http://wetty.{$MY_DOMAIN} {
-    import authentik_forwarder
-    reverse_proxy wetty:3000
+    reverse_proxy wetty:3000 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
 }
 
