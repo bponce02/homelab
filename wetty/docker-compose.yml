@@ -5,12 +5,23 @@ services:
     hostname: wetty.develium.dev
     restart: unless-stopped
     environment:
-      - SSHHOST=localhost
+      - SSHHOST=wetty-ssh
       - SSHPORT=22
-      - SSHUSER=melissa
-      - BASE=/
+      - NODE_ENV=production
     volumes:
       - ../config/volumes/wetty:/home/term
+    networks:
+      - proxy
+
+  wetty-ssh:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: wetty-ssh
+    hostname: wetty-ssh
+    restart: unless-stopped
+    env_file:
+      - ../config/env/wetty/.env
+    volumes:
+      - ../config/volumes/wetty/ssh:/config
     networks:
       - proxy
 
