@@ -12,9 +12,9 @@ services:
       - N8N_AUTH_EXCLUDE_ENDPOINTS=healthz
       - N8N_PROXY_AUTH_ENABLED=true
       - N8N_PROXY_AUTH_HEADER=X-Authentik-Email
-      - N8N_HOST=n8n.${MY_DOMAIN}
+      - N8N_HOST=n8n.develium.dev
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://n8n.${MY_DOMAIN}/
+      - WEBHOOK_URL=https://n8n.develium.dev/
     volumes:
       - ../config/volumes/n8n/data:/home/node/.n8n
     networks:
