@@ -14,6 +14,13 @@ http://tasks.{$MY_DOMAIN} {
     reverse_proxy vikunja:3456
 }
 
+http://todo.{$MY_DOMAIN} {
+    import authentik_forwarder
+    reverse_proxy todo:8000 {
+        header_up X-Forwarded-Proto https
+    }
+}
+
 http://nextcloud.{$MY_DOMAIN} {
     import authentik_forwarder
     reverse_proxy nextcloud:443 {

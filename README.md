@@ -132,6 +132,7 @@ sudo docker compose -f n8n/docker-compose.yml up -d
 sudo docker compose -f nextcloud/docker-compose.yml up -d
 sudo docker compose -f paperless/docker-compose.yml up -d
 sudo docker compose -f stirlingpdf/docker-compose.yml up -d
+sudo docker compose -f todo/docker-compose.yml up -d
 sudo docker compose -f vikunja/docker-compose.yml up -d
 ```
 

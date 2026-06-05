@@ -1,0 +1,27 @@
+services:
+  todo:
+    image: ghcr.io/bponce02/todo:latest
+    container_name: todo
+    restart: unless-stopped
+    env_file:
+      - ../config/env/todo/.env
+    environment:
+      # Behind Cloudflare Tunnel -> Caddy, which forwards plain HTTP with
+      # X-Forwarded-Proto: https set, so Django can tell the original request
+      # was HTTPS (Secure cookies, request.is_secure()). Only safe because the
+      # app is reachable solely through the tunnel/proxy network.
+      DJANGO_TRUST_PROXY_HTTPS: "True"
+    volumes:
+      - ../config/volumes/todo/data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/', timeout=5)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
