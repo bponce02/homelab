@@ -1,0 +1,70 @@
+################################
+# 🦎 KOMODO COMPOSE - MONGO 🦎 #
+################################
+
+## Bootstrap stack for Komodo. Deploy this ONE stack by hand:
+##
+##   docker network create proxy   # if it doesn't exist yet
+##   docker compose -p komodo -f komodo/compose.yaml --env-file komodo/compose.env up -d
+##
+## Once Core is up, every other service in this repo is added as a Komodo
+## Stack (sourced from this git repo) and managed from the UI.
+
+services:
+  mongo:
+    image: mongo
+    labels:
+      komodo.skip: # Prevent Komodo from stopping it with StopAllContainers
+    command: --quiet --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
+
+  core:
+    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - 9120:9120
+    env_file: ./compose.env
+    environment:
+      KOMODO_DATABASE_ADDRESS: mongo:27017
+    volumes:
+      ## Core / Periphery communication keys
+      - keys:/config/keys
+      ## Dated database backups - https://komo.do/docs/setup/backup
+      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
+    networks:
+      - default
+      ## Exposed on the proxy network so Caddy can reverse-proxy the UI
+      - proxy
+
+  periphery:
+    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-2}
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - core
+    env_file: ./compose.env
+    volumes:
+      - keys:/config/keys
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/proc
+      ## Periphery's root dir — all stacks/repos it manages live under here.
+      ## Must be the same path inside and outside the container.
+      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+
+volumes:
+  mongo-data:
+  mongo-config:
+  keys:
+
+networks:
+  proxy:
+    external: true
