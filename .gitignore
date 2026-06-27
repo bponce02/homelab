@@ -1,2 +1,2 @@
 config/volumes/backrest/config/config.json
-komodo/compose.env
+config/env/komodo/.env

@@ -5,7 +5,7 @@
 ## Bootstrap stack for Komodo. Deploy this ONE stack by hand:
 ##
 ##   docker network create proxy   # if it doesn't exist yet
-##   docker compose -p komodo -f komodo/compose.yaml --env-file komodo/compose.env up -d
+##   docker compose -p komodo -f komodo/compose.yaml --env-file config/env/komodo/.env up -d
 ##
 ## Once Core is up, every other service in this repo is added as a Komodo
 ## Stack (sourced from this git repo) and managed from the UI.
@@ -32,7 +32,8 @@ services:
       - mongo
     ports:
       - 9120:9120
-    env_file: ./compose.env
+    env_file:
+      - ../config/env/komodo/.env
     environment:
       KOMODO_DATABASE_ADDRESS: mongo:27017
     volumes:
@@ -51,7 +52,8 @@ services:
     restart: unless-stopped
     depends_on:
       - core
-    env_file: ./compose.env
+    env_file:
+      - ../config/env/komodo/.env
     volumes:
       - keys:/config/keys
       - /var/run/docker.sock:/var/run/docker.sock
