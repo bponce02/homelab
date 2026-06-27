@@ -5,7 +5,7 @@
 ## Bootstrap stack for Komodo. Deploy this ONE stack by hand:
 ##
 ##   docker network create proxy   # if it doesn't exist yet
-##   docker compose -p komodo -f komodo/compose.yaml --env-file config/env/komodo/.env up -d
+##   cd komodo && docker compose up -d
 ##
 ## Once Core is up, every other service in this repo is added as a Komodo
 ## Stack (sourced from this git repo) and managed from the UI.
@@ -17,15 +17,14 @@ services:
       komodo.skip: # Prevent Komodo from stopping it with StopAllContainers
     command: --quiet --wiredTigerCacheSizeGB 0.25
     restart: unless-stopped
+    env_file:
+      - ../config/env/komodo/.env
     volumes:
       - mongo-data:/data/db
       - mongo-config:/data/configdb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD}
 
   core:
-    image: ghcr.io/moghtech/komodo-core:${COMPOSE_KOMODO_IMAGE_TAG:-2}
+    image: ghcr.io/moghtech/komodo-core:2
     init: true
     restart: unless-stopped
     depends_on:
@@ -40,14 +39,14 @@ services:
       ## Core / Periphery communication keys
       - keys:/config/keys
       ## Dated database backups - https://komo.do/docs/setup/backup
-      - ${COMPOSE_KOMODO_BACKUPS_PATH}:/backups
+      - /etc/komodo/backups:/backups
     networks:
       - default
       ## Exposed on the proxy network so Caddy can reverse-proxy the UI
       - proxy
 
   periphery:
-    image: ghcr.io/moghtech/komodo-periphery:${COMPOSE_KOMODO_IMAGE_TAG:-2}
+    image: ghcr.io/moghtech/komodo-periphery:2
     init: true
     restart: unless-stopped
     depends_on:
@@ -60,7 +59,7 @@ services:
       - /proc:/proc
       ## Periphery's root dir — all stacks/repos it manages live under here.
       ## Must be the same path inside and outside the container.
-      - ${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}:${PERIPHERY_ROOT_DIRECTORY:-/etc/komodo}
+      - /etc/komodo:/etc/komodo
 
 volumes:
   mongo-data:
