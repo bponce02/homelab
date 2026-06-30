@@ -60,17 +60,17 @@ http://{$MY_DOMAIN} {
         root * /srv/blog
         file_server
     }
-    
+
     handle /media/* {
         root * /srv/blog
         file_server
     }
-    
+
     handle /admin* {
         import authentik_forwarder
         reverse_proxy blog:8000
     }
-    
+
     reverse_proxy blog:8000
 }
 
@@ -111,3 +111,7 @@ http://wetty.{$MY_DOMAIN} {
     }
 }
 
+http://per.{$MY_DOMAIN} {
+    import authentik_forwarder
+    reverse_proxy personal-management:8000
+}
