@@ -1,0 +1,45 @@
+services:
+  personal-management:
+    ## Build straight from the repo's Dockerfile — no prebuilt/registry image.
+    ## The repo is PRIVATE: BuildKit auto-uses a build secret named
+    ## GIT_AUTH_TOKEN to authenticate the git-context clone (token stays out of
+    ## the URL and out of image layers). Put a GitHub PAT (repo:read) in
+    ## personal-management/.env as GIT_AUTH_TOKEN=ghp_xxx (auto-loaded, gitignored).
+    ## Then build with:
+    ##   docker compose -f personal-management/docker-compose.yml up -d --build
+    build:
+      context: "https://github.com/bponce02/personal-management.git#main"
+      dockerfile: Dockerfile
+      secrets:
+        - GIT_AUTH_TOKEN
+    image: personal-management:local
+    container_name: personal-management
+    restart: unless-stopped
+    env_file:
+      - ../config/env/personal-management/.env
+    environment:
+      # Production: never DEBUG; serve the built Vite manifest, SQLite on volume.
+      DEBUG: "False"
+      DJANGO_VITE_DEV_MODE: "False"
+      DB_PATH: /app/data/db.sqlite3
+    volumes:
+      - ../config/volumes/personal-management/data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - proxy
+
+secrets:
+  ## Sourced from GIT_AUTH_TOKEN in the environment (compose auto-loads
+  ## personal-management/.env). BuildKit special-cases this secret id to
+  ## authenticate HTTPS git-context clones.
+  GIT_AUTH_TOKEN:
+    environment: GIT_AUTH_TOKEN
+
+networks:
+  proxy:
+    external: true

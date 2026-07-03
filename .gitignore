@@ -1,2 +1,3 @@
 config/volumes/backrest/config/config.json
-config/env/komodo/.env
+config/env/*/.env
+personal-management/.env
