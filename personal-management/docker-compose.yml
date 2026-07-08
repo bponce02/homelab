@@ -24,6 +24,13 @@ services:
       DB_PATH: /app/data/db.sqlite3
     volumes:
       - ../config/volumes/personal-management/data:/app/data
+    ports:
+      ## Loopback-only: lets host-side automations (Claude, Hermes, cron) call
+      ## token-gated endpoints like /api/notify/ without traversing
+      ## Cloudflare/Authentik. Not reachable off-host.
+      - "127.0.0.1:8100:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
       interval: 30s
