@@ -22,8 +22,14 @@ services:
       DEBUG: "False"
       DJANGO_VITE_DEV_MODE: "False"
       DB_PATH: /app/data/db.sqlite3
+      ## Approved roots for inline chat media (MEDIA: lines). Non-secret. Each
+      ## entry must also be bind-mounted read-only at the identical path below.
+      HERMES_MEDIA_ROOTS: /home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots
     volumes:
       - ../config/volumes/personal-management/data:/app/data
+      ## Same-path read-only mount so MEDIA: paths reported by Hermes resolve
+      ## unchanged inside the container. Scoped to the screenshots dir only.
+      - /home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots:/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots:ro
     ports:
       ## Loopback-only: lets host-side automations (Claude, Hermes, cron) call
       ## token-gated endpoints like /api/notify/ without traversing
