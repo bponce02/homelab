@@ -4,9 +4,9 @@ services:
     container_name: blog
     restart: unless-stopped
     volumes:
-      - ../config/volumes/blog/static:/app/static
-      - ../config/volumes/blog/media:/app/media
-      - ../config/volumes/blog/db.sqlite3:/app/db.sqlite3
+      - ../config/volumes/blog/static:/app/src/static
+      - ../config/volumes/blog/media:/app/src/media
+      - ../config/volumes/blog/db.sqlite3:/app/src/db.sqlite3
     networks:
       - proxy
     env_file:
