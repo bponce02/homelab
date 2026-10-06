@@ -1,7 +1,6 @@
-# Reference endpoints: Codex Subscription is already enabled; append only missing entries.
-# Do not replace existing endpoints or add Local Pi before its gateway is ready.
-# Codex uses a server-configured key for this single-user instance; keep registration disabled.
-# Local Pi remains opt-in with a user-provided key.
+# Reference endpoints: both entries are configured; do not duplicate them.
+# Both use server-configured keys for this single-user instance; keep registration disabled.
+# Local Pi sessions become available only after loading the bridge in Pi.
 endpoints:
   custom:
     - name: Codex Subscription
@@ -23,7 +22,7 @@ endpoints:
         - max_tokens
         - max_completion_tokens
     - name: Local Pi
-      apiKey: user_provided
+      apiKey: ${LOCAL_PI_API_KEY}
       baseURL: ${LOCAL_PI_BASE_URL}
       models:
         default:

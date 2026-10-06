@@ -14,6 +14,22 @@ endpoints:
       - tools
       - memory
   custom:
+    - name: Local Pi
+      apiKey: ${LOCAL_PI_API_KEY}
+      baseURL: ${LOCAL_PI_BASE_URL}
+      models:
+        default:
+          - pi/homelab
+        fetch: true
+      titleConvo: false
+      modelDisplayLabel: Local Pi
+      dropParams:
+        - temperature
+        - top_p
+        - presence_penalty
+        - frequency_penalty
+        - max_tokens
+        - max_completion_tokens
     - name: Codex Subscription
       apiKey: ${CODEX_CONNECTOR_API_KEY}
       baseURL: http://codex-connector:8788/v1

@@ -8,6 +8,7 @@ Type=simple
 WorkingDirectory=%h/Documents/GitHub/homelab/pi-connectors
 Environment=PI_CONNECTOR_MODE=sessions
 Environment=PI_CONNECTOR_STATE=%h/.local/state/pi-gateway
+Environment=PI_SESSIONS_CONFIG=%h/.local/state/pi-gateway/sessions.json
 Environment=HERDR_BIN=%h/.local/bin/herdr
 EnvironmentFile=-%h/.config/pi-gateway.env
 ExecStart=/usr/bin/env node --import tsx src/main.ts

@@ -1,6 +1,6 @@
 # Pi connectors for LibreChat
 
-**Codex Subscription is authenticated, enabled in LibreChat, and verified end-to-end. Local Pi is not activated.** This single-user LibreChat instance now supplies the connector key server-side; no per-user key entry is needed. New account registration is disabled. CLIProxyAPI and local Pi sessions remain unchanged.
+**Codex Subscription is verified end-to-end. The Local Pi gateway and LibreChat endpoint are configured; the selected Pi conversation still needs `/reload` to activate its bridge.** This single-user LibreChat instance supplies both connector keys server-side; no per-user key entry is needed. New account registration is disabled. CLIProxyAPI is unchanged, and no prompt has been injected into the existing Pi conversation.
 
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
@@ -25,7 +25,9 @@ Tests use Pi's fake provider, an isolated real SDK session, temporary Unix socke
 
 **Verified on the homelab:** Docker image build, non-root/read-only runtime, health, client-key enforcement, model discovery, owner OAuth, real `gpt-5.5` inference/SSE, and a synthetic function-call/result round-trip from the actual LibreChat container. A browser test also verified a completed Codex reply through LibreChat, on desktop/mobile in light/dark modes. Temporary verification accounts and their saved keys were deleted through LibreChat's API afterward. No host ports are published.
 
-**Still requires validation:** Local Pi activation/reachability from the actual LibreChat container to the laptop, and real LibreChat agent/MCP/schedule scenarios. No LibreChat frontend modifications were made.
+**Local Pi network checks passed:** the real LibreChat container can reach the laptop gateway, authenticate model discovery, and reject non-allowlisted sessions. Discovery is intentionally empty until the bridge is reloaded.
+
+**Still requires validation:** discovery and a real browser-to-Pi round-trip after the owner runs `/reload`, plus real LibreChat agent/MCP/schedule scenarios. No LibreChat frontend modifications were made.
 
 ## Current deployment
 
@@ -36,7 +38,7 @@ The homelab's existing checkout contains live modifications and service data, so
 - The release's parent `config` symlink points to `/home/melissa/homelab/config`; credentials/state survive release changes.
 - Compose project: `pi-connectors`; container: `pi-connectors-codex-connector-1`.
 - The original `cd037ce` release failed its non-root file-permission check and was replaced. The Dockerfile now sets readable package permissions and source ownership explicitly, including for privately extracted build contexts.
-- Only the connector and LibreChat were restarted. The Codex endpoint and agent-provider allowance are applied; Local Pi remains an example only. Live LibreChat MCP settings were preserved rather than replaced with pending repo changes.
+- Only the connector and LibreChat were restarted, plus the new laptop gateway user service. Both endpoints are configured; only Codex is an allowed LibreChat agent provider. Live LibreChat MCP settings were preserved rather than replaced with pending repo changes.
 - The pre-Codex LibreChat configuration backup is `/home/melissa/homelab-releases/config-backups/librechat-before-codex-20261006T061803Z.yaml` (owner-readable only).
 
 Owner login from a terminal with the existing SSH alias:
@@ -72,13 +74,24 @@ The server is available internally at `http://codex-connector:8788/v1` on Docker
 
 Supported: text/system/developer history, inline base64 images, function definitions/calls/results, reasoning summaries, usage, JSON/SSE, and upstream cancellation. The adapter never executes tools. Remote image URLs are rejected rather than fetched. Structured response formats, legacy function APIs, logprobs, stop sequences, named forced tool calls, and unsupported sampling options are rejected. `tool_choice` supports auto/none/required. Pi/Codex controls model-specific reasoning and token limits; `max_tokens` is not a guaranteed hard budget on the subscription transport. The LibreChat example drops sampling/budget knobs rather than implying such guarantees.
 
-## Local Pi: future activation
+## Local Pi: installed gateway and session activation
 
 This runs **on the local machine**, not in the homelab Docker stack. The laptop must remain awake, connected to Tailscale, and running the selected Herdr/Pi sessions.
 
+Current installation:
+
+- User service: `pi-session-gateway.service`, enabled and running on `100.126.158.27:8787` (Tailscale only).
+- Unit: `~/.config/systemd/user/pi-session-gateway.service`; non-secret configuration: `~/.config/pi-gateway.env`.
+- Private key, request journal, and allowlist: `~/.local/state/pi-gateway/`; `sessions.json` allows only the current homelab Pi conversation as `pi/homelab`.
+- The bridge path has been appended to `~/.pi/agent/settings.json`. The original settings are backed up at `~/.local/state/pi-gateway/backups/pi-settings-before-bridge.json`.
+- **Next:** run `/reload` in that homelab Pi conversation. Once Pi is idle, refresh LibreChat, select **Local Pi → pi/homelab**, and send a harmless message. No extra API-key entry is needed.
+- User-service lingering is not enabled. The service starts with user login; it does not keep the laptop awake. `/new` or switching to a different Pi session requires deliberately updating the allowlist rather than silently redirecting the existing model.
+
+Inspect or stop the gateway with `systemctl --user status pi-session-gateway` and `systemctl --user stop pi-session-gateway`. Setup reference for another installation follows.
+
 ### 1. Opt sessions into the extension
 
-After approval, append this absolute path to the existing `extensions` array in `~/.pi/agent/settings.json`, preserving other settings:
+For a fresh installation, append this absolute path to the existing `extensions` array in `~/.pi/agent/settings.json`, preserving other settings:
 
 ```text
 /home/YOUR_USER/Documents/GitHub/homelab/pi-connectors/extension/index.ts
@@ -94,10 +107,10 @@ From this directory:
 
 ```bash
 PI_CONNECTOR_STATE="$HOME/.local/state/pi-gateway" npm run setup
-cp -n sessions.example.json sessions.json
+cp -n sessions.example.json "$HOME/.local/state/pi-gateway/sessions.json"
 ```
 
-Edit `sessions.json`. Use the Pi **session UUID**, not the Herdr pane ID, as `sessionId`. Registration filenames in `~/.local/state/pi-gateway/run/` contain the UUID; their JSON records contain the matching Herdr pane and session file. `herdr agent get "$HERDR_PANE_ID"` can confirm the current pane's session file. For example:
+Edit `~/.local/state/pi-gateway/sessions.json`. Use the Pi **session UUID**, not the Herdr pane ID, as `sessionId`. Registration filenames in `~/.local/state/pi-gateway/run/` contain the UUID; their JSON records contain the matching Herdr pane and session file. `herdr agent get "$HERDR_PANE_ID"` can confirm the current pane's session file. For example:
 
 ```json
 {"sessions":[{"id":"homelab","name":"Homelab Pi","sessionId":"ACTUAL-PI-SESSION-UUID"}]}
@@ -110,6 +123,7 @@ The client model is `pi/homelab`. The config is re-read for discovery and each r
 ```bash
 PI_CONNECTOR_MODE=sessions \
 PI_CONNECTOR_STATE="$HOME/.local/state/pi-gateway" \
+PI_SESSIONS_CONFIG="$HOME/.local/state/pi-gateway/sessions.json" \
 PI_CONNECTOR_HOST="$(tailscale ip -4)" \
 HERDR_BIN="$HOME/.local/bin/herdr" \
 npm start
@@ -143,11 +157,11 @@ The dropdown is pinned to the newest available variant of each GPT-6 family mode
 
 `ALLOW_REGISTRATION=false` keeps new sign-ups disabled. A server-configured key is available to every existing account allowed to use that endpoint. Revisit this choice before turning the instance into a multi-user service.
 
-The **Local Pi** entry in [`../librechat/pi-endpoints.example.yaml`](../librechat/pi-endpoints.example.yaml) is still opt-in. Append only that entry when its gateway is ready; do not duplicate Codex or replace Ollama, OpenRouter, MCP, memory, or schedules.
+Both entries in [`../librechat/pi-endpoints.example.yaml`](../librechat/pi-endpoints.example.yaml) are now configured. Do not duplicate them or replace Ollama, OpenRouter, MCP, memory, or schedules.
 
-Add `LOCAL_PI_BASE_URL=http://<laptop-tailscale-ip>:8787/v1` to the existing private `config/env/librechat/.env` before an approved LibreChat restart. Never use `localhost` for the laptop endpoint inside the homelab container.
+The same private `config/env/pi-connectors/librechat.env` also contains `LOCAL_PI_BASE_URL=http://100.126.158.27:8787/v1` and `LOCAL_PI_API_KEY`, copied privately from the laptop's separate gateway key. LibreChat was recreated to load these variables. Never use `localhost` for the laptop endpoint inside the homelab container.
 
-The inactive Local Pi example still uses `apiKey: user_provided`. Its first model fetch may fall back to example defaults until a key is saved; align the fallback model with the session allowlist. Decide its owner-only authentication configuration when activating the gateway. Protect LibreChat's encryption keys/database and the private server env files.
+Local Pi uses server-side authentication too. Its `pi/homelab` fallback model does not mean the session is online: requests fail closed until the bridge is registered and the allowlist matches. Protect LibreChat's encryption keys/database and the private server env files.
 
 **Codex Subscription** is already included in `endpoints.agents.allowedProviders`; **Local Pi** must not be added. Keep Local Pi in ordinary chat mode with LibreChat tools/agents disabled. Keep `titleConvo: false`; automatic title/summary/background generation must not send extra prompts into a real Pi session. Do not schedule Local Pi chats in this initial integration. No frontend fork is required.
 
