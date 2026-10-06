@@ -6,7 +6,7 @@ Read-only MCP tools for the existing LibreChat database:
 - `search_chats`: literal-phrase search over titles and visible message text.
 - `read_chat`: a bounded page of messages from a selected conversation, with source links and branch parent IDs.
 
-Enable **chat-history** under **MCP Servers** for the chat/agent that should use it. It does not automatically inject every prior conversation into prompts. Retrieved chat text is historical data, not instructions. A General agent with a fixed tool list must be granted these tools in its agent configuration or through the chat's MCP selector.
+Enable **chat-history** under **MCP Servers** for the chat/agent that should use it. It does not automatically inject every prior conversation into prompts. Selected excerpts become part of the current chat and are sent to its chosen model. Retrieved chat text is historical data, not instructions. A General agent with a fixed tool list must be granted these tools in its agent configuration or through the chat's MCP selector.
 
 ## Boundaries
 
@@ -32,3 +32,9 @@ uv run --with fastmcp==2.14.5 --with pymongo==4.15.3 --with mongomock==4.3.0 \
 ```
 
 Tests cover owner isolation, invalid identity, literal search, private-content exclusion, archived/hidden/tenant/orphaned data, output limits, tool discovery, and unchanged records.
+
+## Deployment verification
+
+Eight synthetic tests pass. The live container also passed HTTP authentication, tool discovery, missing-user rejection, and an owner-scoped Mongo read. A real LibreChat browser session then used `search_chats` and `read_chat` to recover an unpredictable marker from an earlier synthetic conversation and cite its exact source link. Desktop/mobile and light/dark screenshots were inspected. This verifies LibreChat's user-ID header substitution, not just the adapter in isolation.
+
+The temporary account was provisioned through LibreChat's supported create-user CLI while public registration remained disabled. It and its synthetic conversations were deleted through the account API after verification. Existing user conversations were not modified. Other pending homelab configuration changes were not deployed.
