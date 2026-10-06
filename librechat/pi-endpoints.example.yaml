@@ -1,4 +1,5 @@
-# Append these entries to endpoints.custom in librechat.yaml; do not replace its existing endpoints.
+# Reference endpoints: Codex Subscription is already enabled; append only missing entries.
+# Do not replace existing endpoints or add Local Pi before its gateway is ready.
 # Both keys are entered privately in LibreChat by the owner, not shared with every registered user.
 endpoints:
   custom:
@@ -34,5 +35,5 @@ endpoints:
         - frequency_penalty
         - max_tokens
         - max_completion_tokens
-# Optionally append "Codex Subscription" to endpoints.agents.allowedProviders.
+# "Codex Subscription" is already included in endpoints.agents.allowedProviders.
 # Do NOT add "Local Pi": Pi, rather than LibreChat, runs that session's tools.

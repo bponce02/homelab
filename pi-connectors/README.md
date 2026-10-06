@@ -1,6 +1,6 @@
 # Pi connectors for LibreChat
 
-**Codex connector deployed for smoke tests; owner OAuth login is still required. Local Pi is not activated.** Existing CLIProxyAPI, LibreChat endpoint configuration, and local Pi sessions are unchanged.
+**Codex Subscription is authenticated, enabled in LibreChat, and verified end-to-end. Local Pi is not activated.** Each LibreChat user still needs the connector's private client key; it is not shared globally. CLIProxyAPI and local Pi sessions remain unchanged.
 
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
@@ -23,9 +23,9 @@ docker compose config --quiet
 
 Tests use Pi's fake provider, an isolated real SDK session, temporary Unix sockets, and temporary credentials. They do not log in, contact Codex, submit work to an existing session, or deploy containers. Coverage includes HTTP authentication, tool translation, Unicode streaming, busy/offline/identity checks, request deduplication, disconnection, and cross-process credential locking.
 
-**Verified on the homelab:** Docker image build, non-root/read-only runtime, health, client-key enforcement, and authenticated model discovery from the actual LibreChat container. No host ports are published. Missing subscription OAuth fails safely.
+**Verified on the homelab:** Docker image build, non-root/read-only runtime, health, client-key enforcement, model discovery, owner OAuth, real `gpt-5.5` inference/SSE, and a synthetic function-call/result round-trip from the actual LibreChat container. A browser test also verified a completed Codex reply through LibreChat, on desktop/mobile in light/dark modes. Temporary verification accounts and their saved keys were deleted through LibreChat's API afterward. No host ports are published.
 
-**Still requires owner validation:** real Codex OAuth/inference, LibreChat end-to-end behavior, and Local Pi activation/reachability from the actual LibreChat container to the laptop. No LibreChat frontend modifications were made.
+**Still requires validation:** Local Pi activation/reachability from the actual LibreChat container to the laptop, and real LibreChat agent/MCP/schedule scenarios. No LibreChat frontend modifications were made.
 
 ## Current deployment
 
@@ -36,7 +36,8 @@ The homelab's existing checkout contains live modifications and service data, so
 - The release's parent `config` symlink points to `/home/melissa/homelab/config`; credentials/state survive release changes.
 - Compose project: `pi-connectors`; container: `pi-connectors-codex-connector-1`.
 - The original `cd037ce` release failed its non-root file-permission check and was replaced. The Dockerfile now sets readable package permissions and source ownership explicitly, including for privately extracted build contexts.
-- No unrelated stacks were restarted. LibreChat's endpoint examples have not been applied.
+- Only the connector and LibreChat were restarted. The Codex endpoint and agent-provider allowance are applied; Local Pi remains an example only. Live LibreChat MCP settings were preserved rather than replaced with pending repo changes.
+- The pre-Codex LibreChat configuration backup is `/home/melissa/homelab-releases/config-backups/librechat-before-codex-20261006T061803Z.yaml` (owner-readable only).
 
 Owner login from a terminal with the existing SSH alias:
 
@@ -132,14 +133,22 @@ Environment overrides: `PI_CONNECTOR_PORT`, `PI_CONNECTOR_KEY_FILE`, `PI_SESSION
 - If another extension consumes/rejects the submitted input before a run starts, the bridge may stay reserved. Inspect Pi and manually `/reload` when safe; do not blindly retry potentially side-effecting work.
 - A crash can leave a stale `<UUID>.sock`/`<UUID>.json`. The extension fails closed rather than stealing an existing registration. Confirm the old process is gone and that `curl --unix-socket /path/to/<UUID>.sock http://localhost/status` cannot reach it before removing **those two registration files only**, then `/reload`. Never remove an active socket, Pi history, or the request journal. Opening the same session twice is intentionally not supported by the bridge.
 
-## LibreChat configuration: opt-in, not yet applied
+## LibreChat configuration
 
-Merge the two entries in [`../librechat/pi-endpoints.example.yaml`](../librechat/pi-endpoints.example.yaml) into the existing `endpoints.custom` list; keep Ollama, OpenRouter, MCP, memory, and schedules intact.
+Codex Subscription is already present in the repo and live `endpoints.custom` configuration. Refresh https://librechat.develium.dev, select **Codex Subscription**, and save its client key in your own account. On the owner's Wayland laptop, copy it without displaying it in chat or terminal output:
+
+```bash
+ssh Homelab 'cat ~/homelab/config/env/pi-connectors/codex.key' | wl-copy --trim-newline
+```
+
+Paste into LibreChat's API-key dialog, not into a conversation. Clear your clipboard afterward if desired (`wl-copy --clear`). OAuth credentials must never be pasted into LibreChat; this is the separate connector client key.
+
+The **Local Pi** entry in [`../librechat/pi-endpoints.example.yaml`](../librechat/pi-endpoints.example.yaml) is still opt-in. Append only that entry when its gateway is ready; do not duplicate Codex or replace Ollama, OpenRouter, MCP, memory, or schedules.
 
 Add `LOCAL_PI_BASE_URL=http://<laptop-tailscale-ip>:8787/v1` to the existing private `config/env/librechat/.env` before an approved LibreChat restart. Never use `localhost` for the laptop endpoint inside the homelab container.
 
 Each endpoint uses `apiKey: user_provided`: **only the owner** enters that connector's client key in LibreChat. Other registered users must not receive it. LibreChat stores user-provided keys, so protect its encryption keys/database too. Do not replace this with a globally shared server-side key on a multi-user instance. The first model fetch may fall back to example defaults until the user saves a key; refresh the client afterward. Align the Local Pi fallback model with your allowlist.
 
-Only **Codex Subscription** may be appended to `endpoints.agents.allowedProviders`. Keep Local Pi in ordinary chat mode with LibreChat tools/agents disabled. Keep `titleConvo: false`; automatic title/summary/background generation must not send extra prompts into a real Pi session. Do not schedule Local Pi chats in this initial integration. No frontend fork is required.
+**Codex Subscription** is already included in `endpoints.agents.allowedProviders`; **Local Pi** must not be added. Keep Local Pi in ordinary chat mode with LibreChat tools/agents disabled. Keep `titleConvo: false`; automatic title/summary/background generation must not send extra prompts into a real Pi session. Do not schedule Local Pi chats in this initial integration. No frontend fork is required.
 
-After deployment approval: check owner-only key access, real Codex chat + a harmless tool round-trip, Local Pi discovery, busy rejection, one harmless forwarded prompt, streaming, and disconnect behavior. Existing CLIProxyAPI remains untouched until explicitly retired.
+Next, activate and verify Local Pi discovery, busy rejection, one harmless forwarded prompt, streaming, and disconnect behavior. Existing CLIProxyAPI remains untouched until explicitly retired.
