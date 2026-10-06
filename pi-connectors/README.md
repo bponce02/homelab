@@ -31,8 +31,8 @@ Tests use Pi's fake provider, an isolated real SDK session, temporary Unix socke
 
 The homelab's existing checkout contains live modifications and service data, so it was not pulled, reset, or overwritten. Only the connector was deployed from committed source:
 
-- Source commit: `8c969be`.
-- Release: `/home/melissa/homelab-releases/pi-connectors-8c969be/pi-connectors`.
+- Releases are named by their source commit, with `pi-connectors-current` pointing to the verified active release.
+- Active release: `/home/melissa/homelab-releases/pi-connectors-current/pi-connectors`.
 - The release's parent `config` symlink points to `/home/melissa/homelab/config`; credentials/state survive release changes.
 - Compose project: `pi-connectors`; container: `pi-connectors-codex-connector-1`.
 - The original `cd037ce` release failed its non-root file-permission check and was replaced. The Dockerfile now sets readable package permissions and source ownership explicitly, including for privately extracted build contexts.
@@ -41,10 +41,10 @@ The homelab's existing checkout contains live modifications and service data, so
 Owner login from a terminal with the existing SSH alias:
 
 ```bash
-ssh -t Homelab 'cd /home/melissa/homelab-releases/pi-connectors-8c969be/pi-connectors && docker compose run --rm -it codex-connector npm run login'
+ssh -t Homelab 'cd /home/melissa/homelab-releases/pi-connectors-current/pi-connectors && docker compose run --rm -it codex-connector npm run login'
 ```
 
-Complete browser consent and paste any callback URL into that terminal only, never into chat. The running connector reads the resulting credential store; it does not need a restart after login.
+At the login-method menu, choose **2: Device code login (headless)** for the SSH/container workflow. Open the printed verification URL and enter the displayed code yourself; no localhost callback or pasted redirect is needed. If device-code login is unavailable, choose **1: Browser login** instead and paste any callback URL into that terminal only, never into chat. The running connector reads the resulting credential store; it does not need a restart after login.
 
 ## Codex Subscription: deployment procedure
 
@@ -65,7 +65,7 @@ docker compose up -d
 
 Directories are mode 0700. Both paths are gitignored. Compose runs as UID/GID 1000; ensure the setup user/volume ownership matches before deployment. OAuth writes and refreshes are serialized across processes and atomically replaced. Credentials are never imported from Pi or CLIProxyAPI. Back up the state securely; never publish it or attach it to an issue.
 
-Open the login URL yourself and consent using your own account. In a remote/container login, the browser's localhost callback may fail: copy the **entire redirect URL** from the address bar into the CLI's manual callback prompt. Keep that URL private. Do not publish the callback port or put a bearer/OAuth token in a URL.
+The CLI displays the provider's login-method choices. Device-code login is recommended remotely: open the verification URL and enter its short-lived code yourself. Browser login is also supported; in a remote/container login, the browser's localhost callback may fail: copy the **entire redirect URL** from the address bar into the CLI's manual callback prompt. Keep that URL private. Do not publish the callback port or put a bearer/OAuth token in a URL.
 
 The server is available internally at `http://codex-connector:8788/v1` on Docker's `proxy` network. No host port or Caddy route is added. `/health` does not prove OAuth validity or subscription/model entitlement. Discovery returns Pi's pinned catalog, not a guarantee your account can use every model.
 
