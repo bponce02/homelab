@@ -29,12 +29,14 @@ Two optional [Pi connectors](pi-connectors/README.md) provide Codex subscription
 
 CLIProxyAPI's management UI runs at https://cliproxy.develium.dev/management.html (Tailscale only). It has separate management/client keys and persistent OAuth storage. Subscription login must be completed by the owner before connecting chat clients. This is a single credential pool, not tenant-isolated hosting. See [CLIProxyAPI setup and login](cliproxyapi/README.md).
 
-Executor's self-hosted integration catalog runs at https://executor.develium.dev (Tailscale only). Create the owner account through its first-run signup screen; no admin is bootstrapped. Connecting LibreChat to `http://executor:4788/mcp` requires a valid API key from the current owner. Configure integrations once in Executor; external providers may still require their own credentials or OAuth consent. No cloud integrations are migrated automatically.
+Executor's self-hosted integration catalog runs at https://executor.develium.dev (Tailscale only). Create the owner account through its first-run signup screen; no admin is bootstrapped. LibreChat's [Executor MCP connection](executor/README.md) uses OAuth at `https://executor.develium.dev/mcp`; authorize it once from MCP Servers with the existing owner account. Configure integrations once in Executor; external providers may still require their own credentials or OAuth consent. No cloud integrations are migrated automatically.
 
 - Compose: `executor/docker-compose.yml`, image pinned to version 1.6.10 and its digest; no published host ports or Docker socket.
 - No bootstrap credentials are loaded. Retired credentials and the previous `executor_executor-data` volume are preserved but inactive; rollback configuration is in `/root/executor-manual-owner-backup/` on Homelab.
 - Back up `executor_executor-user-data`, including the database and both encryption/session key files. Stop Executor before a file-level backup, or use a consistent volume snapshot.
 - Private-network access from sandboxed code remains disabled. Add network access deliberately when configuring homelab integrations. This integration service does not replace Open Terminal or provide an autonomous background agent.
+
+LibreChat also includes [read-only chat-history MCP tools](librechat/history-mcp/README.md). Enable `chat-history` for a chat/agent to search earlier conversations and retrieve selected messages, scoped to the logged-in user. It does not copy all history into every prompt.
 
 ## Initial Setup
 
