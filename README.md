@@ -25,7 +25,7 @@ The `tailscale-state` volume preserves its identity. Do not delete it during upg
 
 LibreChat runs at https://librechat.develium.dev with Ollama's local models, OpenRouter's hosted models, and Open Terminal/Camofox tools. Open WebUI and its `llm.develium.dev` route are removed from the repository configuration; its saved data is retained. See [chat service configuration and retirement steps](llm/README.md).
 
-Two optional [Pi connectors](pi-connectors/README.md) are implemented locally but **not deployed**: a Codex Subscription provider using Pi's library, and an owner-only gateway to allowlisted Herdr/Pi sessions on the laptop. [LibreChat endpoint examples](librechat/pi-endpoints.example.yaml) are opt-in; existing live configuration and CLIProxyAPI remain unchanged.
+Two optional [Pi connectors](pi-connectors/README.md) provide Codex subscription inference through Pi's library and owner-only access to allowlisted Herdr/Pi sessions on the laptop. The Codex connector is deployed and passes authenticated health/model-discovery checks from LibreChat's container; owner OAuth login is still pending. Local Pi is not activated. [LibreChat endpoint examples](librechat/pi-endpoints.example.yaml) remain opt-in; existing live endpoint configuration and CLIProxyAPI are unchanged.
 
 CLIProxyAPI's management UI runs at https://cliproxy.develium.dev/management.html (Tailscale only). It has separate management/client keys and persistent OAuth storage. Subscription login must be completed by the owner before connecting chat clients. This is a single credential pool, not tenant-isolated hosting. See [CLIProxyAPI setup and login](cliproxyapi/README.md).
 

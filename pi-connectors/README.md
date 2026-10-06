@@ -1,6 +1,6 @@
 # Pi connectors for LibreChat
 
-**Repo-only implementation. Neither connector is activated. Existing CLIProxyAPI, LibreChat, and local Pi sessions are unchanged.** Activation commands below are for a separately approved deployment.
+**Codex connector deployed for smoke tests; owner OAuth login is still required. Local Pi is not activated.** Existing CLIProxyAPI, LibreChat endpoint configuration, and local Pi sessions are unchanged.
 
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
@@ -23,9 +23,30 @@ docker compose config --quiet
 
 Tests use Pi's fake provider, an isolated real SDK session, temporary Unix sockets, and temporary credentials. They do not log in, contact Codex, submit work to an existing session, or deploy containers. Coverage includes HTTP authentication, tool translation, Unicode streaming, busy/offline/identity checks, request deduplication, disconnection, and cross-process credential locking.
 
-**Still requires owner validation:** real Codex OAuth/inference, Docker image build/runtime, LibreChat end-to-end behavior, and reachability from the actual LibreChat container to the laptop. No LibreChat frontend modifications were made.
+**Verified on the homelab:** Docker image build, non-root/read-only runtime, health, client-key enforcement, and authenticated model discovery from the actual LibreChat container. No host ports are published. Missing subscription OAuth fails safely.
 
-## Codex Subscription: future activation
+**Still requires owner validation:** real Codex OAuth/inference, LibreChat end-to-end behavior, and Local Pi activation/reachability from the actual LibreChat container to the laptop. No LibreChat frontend modifications were made.
+
+## Current deployment
+
+The homelab's existing checkout contains live modifications and service data, so it was not pulled, reset, or overwritten. Only the connector was deployed from committed source:
+
+- Source commit: `8c969be`.
+- Release: `/home/melissa/homelab-releases/pi-connectors-8c969be/pi-connectors`.
+- The release's parent `config` symlink points to `/home/melissa/homelab/config`; credentials/state survive release changes.
+- Compose project: `pi-connectors`; container: `pi-connectors-codex-connector-1`.
+- The original `cd037ce` release failed its non-root file-permission check and was replaced. The Dockerfile now sets readable package permissions and source ownership explicitly, including for privately extracted build contexts.
+- No unrelated stacks were restarted. LibreChat's endpoint examples have not been applied.
+
+Owner login from a terminal with the existing SSH alias:
+
+```bash
+ssh -t Homelab 'cd /home/melissa/homelab-releases/pi-connectors-8c969be/pi-connectors && docker compose run --rm -it codex-connector npm run login'
+```
+
+Complete browser consent and paste any callback URL into that terminal only, never into chat. The running connector reads the resulting credential store; it does not need a restart after login.
+
+## Codex Subscription: deployment procedure
 
 On the homelab, from this directory:
 
