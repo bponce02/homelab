@@ -9,10 +9,27 @@ endpoints:
     allowedProviders:
       - OpenRouter
       - Ollama
+      - Codex Subscription
     capabilities:
       - tools
       - memory
   custom:
+    - name: Codex Subscription
+      apiKey: user_provided
+      baseURL: http://codex-connector:8788/v1
+      models:
+        default:
+          - gpt-5.5
+        fetch: true
+      titleConvo: false
+      modelDisplayLabel: Codex Subscription
+      dropParams:
+        - temperature
+        - top_p
+        - presence_penalty
+        - frequency_penalty
+        - max_tokens
+        - max_completion_tokens
     - name: Ollama
       apiKey: ollama
       baseURL: http://ollama:11434/v1/
