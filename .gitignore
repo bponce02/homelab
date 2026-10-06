@@ -1,3 +1,13 @@
 config/volumes/backrest/config/config.json
 config/env/*/.env
+config/env/openrouter.env
+config/env/executor.env
+config/env/executor-openwebui.env
+config/env/executor-local.env
+config/env/llm/*.env
+config/env/stirlingpdf/*.env
+config/env/cliproxyapi/
+config/volumes/cliproxyapi/
+config/env/pi-connectors/
+config/volumes/pi-connectors/
 personal-management/.env

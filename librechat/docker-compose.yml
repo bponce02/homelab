@@ -1,0 +1,66 @@
+services:
+  librechat:
+    image: registry.librechat.ai/librechat-ai/librechat:v0.8.8
+    container_name: librechat
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file:
+      - ../config/env/librechat/.env
+      - ../config/env/openrouter.env
+      - ../config/env/llm/open-terminal.env
+      - ../config/env/llm/camofox.env
+      - ../config/env/stirlingpdf/mcp.env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3080
+      MONGO_URI: mongodb://mongodb:27017/LibreChat
+      DOMAIN_CLIENT: https://librechat.develium.dev
+      DOMAIN_SERVER: https://librechat.develium.dev
+      ENDPOINTS: custom,agents
+      SEARCH: "false"
+      SCHEDULES_SINGLE_PROCESS: "true"
+      ALLOW_EMAIL_LOGIN: "true"
+      ALLOW_REGISTRATION: "true"
+      ALLOW_SOCIAL_LOGIN: "false"
+      ALLOW_SOCIAL_REGISTRATION: "false"
+      ALLOW_UNVERIFIED_EMAIL_LOGIN: "true"
+    volumes:
+      - ./librechat.yaml:/app/librechat.yaml:ro
+      - ../config/volumes/librechat/images:/app/client/public/images
+      - ../config/volumes/librechat/uploads:/app/uploads
+      - ../config/volumes/librechat/logs:/app/logs
+      - ../config/volumes/librechat/data:/app/data
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - proxy
+      - database
+      - terminal
+      - browser
+
+  mongodb:
+    image: mongo:8.0.20
+    container_name: librechat-mongodb
+    restart: unless-stopped
+    volumes:
+      - ../config/volumes/librechat/mongodb:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - database
+
+networks:
+  proxy:
+    external: true
+  database:
+    internal: true
+  terminal:
+    external: true
+    name: llm_terminal
+  browser:
+    external: true
+    name: llm_browser

@@ -1,0 +1,30 @@
+services:
+  executor:
+    image: ghcr.io/usefulsoftwareco/executor-selfhost:1.6.10@sha256:b9e001775d3eb7d662d347c8f7054333c78c1a4fd97cb5a86dc1d1d1406093b9
+    container_name: executor
+    restart: unless-stopped
+    environment:
+      EXECUTOR_WEB_BASE_URL: https://executor.develium.dev
+      EXECUTOR_ORG_NAME: Homelab
+      EXECUTOR_ORG_SLUG: homelab
+    volumes:
+      - executor-user-data:/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r = await fetch('http://127.0.0.1:4788/api/health'); process.exit(r.ok ? 0 : 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - proxy
+
+volumes:
+  executor-user-data:
+
+networks:
+  proxy:
+    external: true

@@ -1,6 +1,40 @@
 # Homelab Setup
 
-Self-hosted homelab infrastructure with Docker and Cloudflare Tunnel.
+Self-hosted homelab infrastructure with Docker and Tailscale-only HTTPS access.
+
+`*.develium.dev` points to Caddy's Tailscale sidecar (`homelab-caddy`, `100.74.174.50`). The homelab's separate Tailscale connection (`100.126.9.60`) is used for SSH. The public blog runs separately on a Droplet through Cloudflare Tunnel.
+
+## Tailscale and UFW
+
+Caddy shares the Tailscale sidecar's network and reaches applications over Docker's `proxy` network. Neither Caddy nor the web applications publish ports on the host. Local integrations may bind to `127.0.0.1` only.
+
+Tailscale controls access to Caddy; there is no additional proxy login. Applications retain their own authentication where configured. Anyone allowed to reach Caddy through Tailscale can reach all its application routes.
+
+Both hosts use ordinary UFW rules for host services: allow Tailscale traffic and UDP 41641, deny other incoming connections. No custom Docker firewall rules are needed. Do not add all-interface Docker port mappings: they bypass ordinary UFW rules.
+
+For a new sidecar, start it and open the authorization link in its logs:
+
+```bash
+sudo docker compose -f caddy/docker-compose.yml up -d tailscale
+sudo docker compose -f caddy/docker-compose.yml logs tailscale
+```
+
+The `tailscale-state` volume preserves its identity. Do not delete it during upgrades. After authorization, start Caddy with `docker compose up -d` in `caddy/` and point the DNS-only wildcard A record to the sidecar's Tailscale IP. Check the device's key-expiry setting in the Tailscale admin console for unattended operation.
+
+## AI Services
+
+LibreChat runs at https://librechat.develium.dev with Ollama's local models, OpenRouter's hosted models, and Open Terminal/Camofox tools. Open WebUI and its `llm.develium.dev` route are removed from the repository configuration; its saved data is retained. See [chat service configuration and retirement steps](llm/README.md).
+
+Two optional [Pi connectors](pi-connectors/README.md) are implemented locally but **not deployed**: a Codex Subscription provider using Pi's library, and an owner-only gateway to allowlisted Herdr/Pi sessions on the laptop. [LibreChat endpoint examples](librechat/pi-endpoints.example.yaml) are opt-in; existing live configuration and CLIProxyAPI remain unchanged.
+
+CLIProxyAPI's management UI runs at https://cliproxy.develium.dev/management.html (Tailscale only). It has separate management/client keys and persistent OAuth storage. Subscription login must be completed by the owner before connecting chat clients. This is a single credential pool, not tenant-isolated hosting. See [CLIProxyAPI setup and login](cliproxyapi/README.md).
+
+Executor's self-hosted integration catalog runs at https://executor.develium.dev (Tailscale only). Create the owner account through its first-run signup screen; no admin is bootstrapped. Connecting LibreChat to `http://executor:4788/mcp` requires a valid API key from the current owner. Configure integrations once in Executor; external providers may still require their own credentials or OAuth consent. No cloud integrations are migrated automatically.
+
+- Compose: `executor/docker-compose.yml`, image pinned to version 1.6.10 and its digest; no published host ports or Docker socket.
+- No bootstrap credentials are loaded. Retired credentials and the previous `executor_executor-data` volume are preserved but inactive; rollback configuration is in `/root/executor-manual-owner-backup/` on Homelab.
+- Back up `executor_executor-user-data`, including the database and both encryption/session key files. Stop Executor before a file-level backup, or use a consistent volume snapshot.
+- Private-network access from sandboxed code remains disabled. Add network access deliberately when configuring homelab integrations. This integration service does not replace Open Terminal or provide an autonomous background agent.
 
 ## Initial Setup
 
@@ -37,26 +71,7 @@ sudo apt update
 sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-### 3. Install Cloudflared
-
-```bash
-# Add Cloudflare GPG key
-sudo mkdir -p --mode=0755 /usr/share/keyrings
-curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | sudo tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
-
-# Add repository to apt sources
-echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
-
-# Install cloudflared
-sudo apt-get update && sudo apt-get install cloudflared
-```
-
-### 4. Configure Cloudflared
-
-1. Go to Cloudflare dashboard and create a new tunnel
-2. Copy the service install command and run it on your server
-
-### 5. Setup Backrest
+### 3. Setup Backrest
 
 1. Paste Backrest config into `config/volumes/backrest/config/config.json` (stored in Bitwarden)
 
@@ -70,7 +85,7 @@ sudo docker network create proxy
 sudo docker compose -f backrest/docker-compose.yml up -d
 ```
 
-4. Open Backrest in browser: `http://SERVER_IP:9898/`
+4. With Caddy running, connect to Tailscale and open Backrest: `https://backrest.develium.dev/`
 
 ## Restore from Backup
 
@@ -89,53 +104,22 @@ sudo cp -r /home/melissa/homelab/restore/* /home/melissa/homelab/
 sudo rm -rf /home/melissa/homelab/restore
 ```
 
-## Configure Cloudflare Tunnel
-
-### 1. Clean Up Old Configuration
-
-1. Go to Cloudflare dashboard → DNS
-2. Clear all DNS records for your domain
-3. Go to Access → Networks → Connectors
-4. Delete old tunnels
-
-### 2. Create New Tunnel
-
-1. Create a new tunnel in Cloudflare
-2. Click the three dots (⋮) on the tunnel → Configure
-
-### 3. Setup Public Hostname Routes
-
-Add two public hostname routes:
-
-| Subdomain | Service |
-|-----------|---------|
-| `yourdomain.com` | `http://localhost` |
-| `*.yourdomain.com` | `http://localhost` |
-
-### 4. Configure DNS Records
-
-Go back to DNS settings and create CNAME records:
-- `@` (root domain) → your tunnel
-- `*` (wildcard) → your tunnel
-
 ## Start All Services
 
 ```bash
 # Start all containers
 sudo docker compose -f actual-budget/docker-compose.yml up -d
-sudo docker compose -f authentik/docker-compose.yml up -d
 sudo docker compose -f caddy/docker-compose.yml up -d
 sudo docker compose -f dozzle/docker-compose.yml up -d
 sudo docker compose -f homepage/docker-compose.yml up -d
 sudo docker compose -f llm/docker-compose.yml up -d
-sudo docker compose -f n8n/docker-compose.yml up -d
-sudo docker compose -f nextcloud/docker-compose.yml up -d
-sudo docker compose -f paperless/docker-compose.yml up -d
+sudo docker compose -f librechat/docker-compose.yml up -d
+sudo docker compose -f executor/docker-compose.yml up -d
 sudo docker compose -f stirlingpdf/docker-compose.yml up -d
-sudo docker compose -f todo/docker-compose.yml up -d
-sudo docker compose -f vikunja/docker-compose.yml up -d
 ```
 
-## Done! 🎉
+Connect to Tailscale to access the homelab at its `*.develium.dev` hostnames.
 
-Your homelab should now be fully operational and accessible through your Cloudflare tunnel.
+Nextcloud and Todo are retired. Their Compose definitions and Caddy routes are removed; existing data and credentials under `config/volumes/{nextcloud,todo}` and `config/env/{nextcloud,todo}` are preserved for recovery. Do not delete them or prune their storage as part of service retirement.
+
+Stirling PDF includes a bearer-authenticated MCP adapter for agent PDF tools. See [setup, shared workspace, and download links](stirlingpdf/README.md) before starting the updated Stirling PDF and LibreChat stacks.

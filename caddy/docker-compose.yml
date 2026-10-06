@@ -1,21 +1,53 @@
 services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.4
+    container_name: caddy-tailscale
+    hostname: homelab-caddy
+    restart: unless-stopped
+    environment:
+      TS_AUTH_ONCE: "true"
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_ACCEPT_DNS: "false"
+      TS_ENABLE_HEALTH_CHECK: "true"
+      TS_LOCAL_ADDR_PORT: "127.0.0.1:9002"
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:9002/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      proxy:
+        aliases:
+          - caddy
 
   caddy:
-    image: caddy:latest
+    build: .
+    image: local/homelab-caddy:2.11.4-cloudflare-0.2.4
     container_name: caddy
-    hostname: caddy
     restart: unless-stopped
-    ports:
-      - "80:80"
+    network_mode: service:tailscale
+    depends_on:
+      tailscale:
+        condition: service_healthy
+        restart: true
     env_file:
       - ../config/env/caddy/.env
+      - /etc/homelab/caddy-dns.env
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ../config/volumes/caddy/data:/data
       - ../config/volumes/caddy/config:/config
-      - ../config/volumes/blog:/srv/blog:ro
-    networks:
-      - proxy
+
+volumes:
+  tailscale-state:
 
 networks:
   proxy:

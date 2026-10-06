@@ -1,0 +1,25 @@
+{
+  "name": "homelab-pi-connectors",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node --import tsx src/main.ts",
+    "login": "node --import tsx src/login.ts",
+    "setup": "node --import tsx src/setup.ts",
+    "check": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "1.0.4",
+    "proper-lockfile": "4.1.2",
+    "tsx": "4.20.6"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "1.0.4",
+    "@types/node": "24.10.1",
+    "@types/proper-lockfile": "4.1.4",
+    "typescript": "5.9.3"
+  }
+}

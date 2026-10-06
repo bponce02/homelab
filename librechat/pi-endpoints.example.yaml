@@ -1,0 +1,38 @@
+# Append these entries to endpoints.custom in librechat.yaml; do not replace its existing endpoints.
+# Both keys are entered privately in LibreChat by the owner, not shared with every registered user.
+endpoints:
+  custom:
+    - name: Codex Subscription
+      apiKey: user_provided
+      baseURL: http://codex-connector:8788/v1
+      models:
+        default:
+          - gpt-5.5
+        fetch: true
+      titleConvo: false
+      modelDisplayLabel: Codex Subscription
+      dropParams:
+        - temperature
+        - top_p
+        - presence_penalty
+        - frequency_penalty
+        - max_tokens
+        - max_completion_tokens
+    - name: Local Pi
+      apiKey: user_provided
+      baseURL: ${LOCAL_PI_BASE_URL}
+      models:
+        default:
+          - pi/homelab
+        fetch: true
+      titleConvo: false
+      modelDisplayLabel: Local Pi
+      dropParams:
+        - temperature
+        - top_p
+        - presence_penalty
+        - frequency_penalty
+        - max_tokens
+        - max_completion_tokens
+# Optionally append "Codex Subscription" to endpoints.agents.allowedProviders.
+# Do NOT add "Local Pi": Pi, rather than LibreChat, runs that session's tools.

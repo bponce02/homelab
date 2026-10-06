@@ -32,8 +32,7 @@ services:
       - /home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots:/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots:ro
     ports:
       ## Loopback-only: lets host-side automations (Claude, Hermes, cron) call
-      ## token-gated endpoints like /api/notify/ without traversing
-      ## Cloudflare/Authentik. Not reachable off-host.
+      ## token-gated endpoints like /api/notify/ directly. Not reachable off-host.
       - "127.0.0.1:8100:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"

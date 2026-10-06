@@ -1,0 +1,9 @@
+{
+  "sessions": [
+    {
+      "id": "homelab",
+      "name": "Homelab Pi",
+      "sessionId": "replace-with-actual-pi-session-id"
+    }
+  ]
+}

@@ -1,9 +1,7 @@
 services:
   stirling-pdf:
-    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
+    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest@sha256:950c596db26e0764f642def2fd4f9ee904ff2ac16d83fe621ff731b771d9b385
     container_name: stirling-pdf
-    ports:
-      - '8080:8080'
     volumes:
       - ../config/volumes/stirlingpdf/trainingData:/usr/share/tessdata # Required for extra OCR languages
       - ../config/volumes/stirlingpdf/extraConfigs:/configs
@@ -16,6 +14,40 @@ services:
     networks:
       - proxy
     restart: unless-stopped
+  stirling-pdf-mcp:
+    build: ./mcp
+    image: local/stirling-pdf-mcp:fastmcp-2.14.5
+    container_name: stirling-pdf-mcp
+    restart: unless-stopped
+    env_file:
+      - ../config/env/stirlingpdf/mcp.env
+    environment:
+      STIRLING_URL: http://stirling-pdf:8080
+      STIRLING_FILES_URL: https://pdf.develium.dev/agent-files
+    volumes:
+      - terminal-home:/home/user
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; assert httpx.get('http://127.0.0.1:8000/mcp').status_code == 401"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - proxy
+
+volumes:
+  terminal-home:
+    external: true
+    name: llm_terminal-home
+
 networks:
   proxy:
     external: true
