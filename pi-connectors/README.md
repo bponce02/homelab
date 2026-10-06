@@ -1,6 +1,6 @@
 # Pi connectors for LibreChat
 
-**Codex Subscription is authenticated, enabled in LibreChat, and verified end-to-end. Local Pi is not activated.** Each LibreChat user still needs the connector's private client key; it is not shared globally. CLIProxyAPI and local Pi sessions remain unchanged.
+**Codex Subscription is authenticated, enabled in LibreChat, and verified end-to-end. Local Pi is not activated.** This single-user LibreChat instance now supplies the connector key server-side; no per-user key entry is needed. New account registration is disabled. CLIProxyAPI and local Pi sessions remain unchanged.
 
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
@@ -135,19 +135,19 @@ Environment overrides: `PI_CONNECTOR_PORT`, `PI_CONNECTOR_KEY_FILE`, `PI_SESSION
 
 ## LibreChat configuration
 
-Codex Subscription is already present in the repo and live `endpoints.custom` configuration. Refresh https://librechat.develium.dev, select **Codex Subscription**, and save its client key in your own account. On the owner's Wayland laptop, copy it without displaying it in chat or terminal output:
+Codex Subscription is present in the repo and live `endpoints.custom` configuration. Refresh https://librechat.develium.dev and select **Codex Subscription**—no API-key entry is needed.
 
-```bash
-ssh Homelab 'cat ~/homelab/config/env/pi-connectors/codex.key' | wl-copy --trim-newline
-```
+LibreChat receives `CODEX_CONNECTOR_API_KEY` from private, gitignored `config/env/pi-connectors/librechat.env` (mode 0600), populated from `codex.key`. Neither key value nor OAuth credentials belong in YAML or chat. Recreate only the LibreChat container after changing this env file; a restart alone does not reload Docker's environment.
 
-Paste into LibreChat's API-key dialog, not into a conversation. Clear your clipboard afterward if desired (`wl-copy --clear`). OAuth credentials must never be pasted into LibreChat; this is the separate connector client key.
+The dropdown is pinned to the newest available variant of each GPT-6 family model: `gpt-6.1-sol`, `gpt-6-astra`, and `gpt-6-luna`. All three passed live subscription requests. `models.fetch: false` prevents the provider's older catalog entries from reappearing; update this allowlist deliberately when new supported models arrive.
+
+`ALLOW_REGISTRATION=false` keeps new sign-ups disabled. A server-configured key is available to every existing account allowed to use that endpoint. Revisit this choice before turning the instance into a multi-user service.
 
 The **Local Pi** entry in [`../librechat/pi-endpoints.example.yaml`](../librechat/pi-endpoints.example.yaml) is still opt-in. Append only that entry when its gateway is ready; do not duplicate Codex or replace Ollama, OpenRouter, MCP, memory, or schedules.
 
 Add `LOCAL_PI_BASE_URL=http://<laptop-tailscale-ip>:8787/v1` to the existing private `config/env/librechat/.env` before an approved LibreChat restart. Never use `localhost` for the laptop endpoint inside the homelab container.
 
-Each endpoint uses `apiKey: user_provided`: **only the owner** enters that connector's client key in LibreChat. Other registered users must not receive it. LibreChat stores user-provided keys, so protect its encryption keys/database too. Do not replace this with a globally shared server-side key on a multi-user instance. The first model fetch may fall back to example defaults until the user saves a key; refresh the client afterward. Align the Local Pi fallback model with your allowlist.
+The inactive Local Pi example still uses `apiKey: user_provided`. Its first model fetch may fall back to example defaults until a key is saved; align the fallback model with the session allowlist. Decide its owner-only authentication configuration when activating the gateway. Protect LibreChat's encryption keys/database and the private server env files.
 
 **Codex Subscription** is already included in `endpoints.agents.allowedProviders`; **Local Pi** must not be added. Keep Local Pi in ordinary chat mode with LibreChat tools/agents disabled. Keep `titleConvo: false`; automatic title/summary/background generation must not send extra prompts into a real Pi session. Do not schedule Local Pi chats in this initial integration. No frontend fork is required.
 

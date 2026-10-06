@@ -1,15 +1,18 @@
 # Reference endpoints: Codex Subscription is already enabled; append only missing entries.
 # Do not replace existing endpoints or add Local Pi before its gateway is ready.
-# Both keys are entered privately in LibreChat by the owner, not shared with every registered user.
+# Codex uses a server-configured key for this single-user instance; keep registration disabled.
+# Local Pi remains opt-in with a user-provided key.
 endpoints:
   custom:
     - name: Codex Subscription
-      apiKey: user_provided
+      apiKey: ${CODEX_CONNECTOR_API_KEY}
       baseURL: http://codex-connector:8788/v1
       models:
         default:
-          - gpt-5.5
-        fetch: true
+          - gpt-6.1-sol
+          - gpt-6-astra
+          - gpt-6-luna
+        fetch: false
       titleConvo: false
       modelDisplayLabel: Codex Subscription
       dropParams:

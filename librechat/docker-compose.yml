@@ -10,6 +10,7 @@ services:
       - ../config/env/llm/open-terminal.env
       - ../config/env/llm/camofox.env
       - ../config/env/stirlingpdf/mcp.env
+      - ../config/env/pi-connectors/librechat.env
     environment:
       HOST: 0.0.0.0
       PORT: 3080
@@ -20,7 +21,7 @@ services:
       SEARCH: "false"
       SCHEDULES_SINGLE_PROCESS: "true"
       ALLOW_EMAIL_LOGIN: "true"
-      ALLOW_REGISTRATION: "true"
+      ALLOW_REGISTRATION: "false"
       ALLOW_SOCIAL_LOGIN: "false"
       ALLOW_SOCIAL_REGISTRATION: "false"
       ALLOW_UNVERIFIED_EMAIL_LOGIN: "true"

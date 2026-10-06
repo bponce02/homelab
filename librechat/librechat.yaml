@@ -15,12 +15,14 @@ endpoints:
       - memory
   custom:
     - name: Codex Subscription
-      apiKey: user_provided
+      apiKey: ${CODEX_CONNECTOR_API_KEY}
       baseURL: http://codex-connector:8788/v1
       models:
         default:
-          - gpt-5.5
-        fetch: true
+          - gpt-6.1-sol
+          - gpt-6-astra
+          - gpt-6-luna
+        fetch: false
       titleConvo: false
       modelDisplayLabel: Codex Subscription
       dropParams:
