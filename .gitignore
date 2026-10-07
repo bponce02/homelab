@@ -2,6 +2,8 @@ config/volumes/backrest/config/config.json
 config/env/*/.env
 config/env/openrouter.env
 config/env/librechat/history-mcp.env
+config/env/librechat/fork.env
+librechat/fork-build/
 config/env/executor.env
 config/env/executor-openwebui.env
 config/env/executor-local.env

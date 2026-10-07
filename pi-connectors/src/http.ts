@@ -67,6 +67,12 @@ export function apiServer(backend: Backend, key: string, timeoutMs = 600_000) {
       if (req.method !== 'POST' || req.url !== '/v1/chat/completions') throw new ApiError(404, 'Not found');
       const body = await readJson(req);
       validate(body);
+      delete body._piRemote;
+      const remoteHeader = req.headers['x-pi-turn'];
+      if (typeof remoteHeader === 'string' && remoteHeader !== '{{LIBRECHAT_BODY_PITURN}}') {
+        try { body._piRemote = JSON.parse(Buffer.from(remoteHeader, 'base64url').toString('utf8')); }
+        catch { throw new ApiError(400, 'Invalid Pi turn header'); }
+      }
       const id = `chatcmpl-${randomUUID()}`;
       const created = Math.floor(Date.now() / 1000);
       const send = (choices: unknown[], usage?: unknown) => {

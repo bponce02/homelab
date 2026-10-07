@@ -8,15 +8,17 @@ export function localRequest(socketPath: string, path: string, body?: unknown, s
     req.end(body === undefined ? undefined : JSON.stringify(body));
   });
 }
-export async function localJson(socketPath: string, path: string) {
+export async function localJson(socketPath: string, path: string, limit = 64 * 1024) {
   const res = await localRequest(socketPath, path, undefined, AbortSignal.timeout(2000));
-  let content = '';
+  const chunks: Buffer[] = [];
+  let size = 0;
   for await (const chunk of res) {
-    content += chunk.toString();
-    if (content.length > 64 * 1024) throw new ApiError(502, 'Invalid session metadata');
+    size += chunk.length;
+    if (size > limit) throw new ApiError(502, 'Session metadata exceeds limit');
+    chunks.push(chunk);
   }
   if (res.statusCode !== 200) throw new ApiError(503, 'Session unavailable');
-  return JSON.parse(content);
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 export async function* lines(stream: AsyncIterable<Buffer>) {
   let pending = '';

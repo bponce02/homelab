@@ -1,0 +1,6 @@
+services:
+  librechat:
+    build: ./pi-sync
+    image: local/librechat:0.8.8-pi-sync
+    env_file:
+      - ../config/env/librechat/pi-sync.env

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import extension from '../extension/index.ts';
 import { SessionBackend } from '../src/sessions.ts';
@@ -21,12 +22,12 @@ async function fixture() {
   let sessionId = 'session-one';
   const context = { isIdle: () => idle, hasPendingMessages: () => false, hasUI: false, sessionManager: { getSessionId: () => sessionId, getSessionFile: () => '/fake-session.jsonl', getEntries: () => entries } };
   const fire = async (event: string, data: Body = {}) => handlers.get(event)?.({ type: event, ...data }, context);
-  extension({ on(event: string, handler: Function) { handlers.set(event, handler); }, appendEntry(customType: string, data: unknown) { entries.push({ type: 'custom', customType, data }); }, sendUserMessage(prompt: string) { prompts.push(prompt); } } as any);
+  extension({ registerTool() {}, on(event: string, handler: Function) { handlers.set(event, handler); }, appendEntry(customType: string, data: unknown) { entries.push({ type: 'custom', customType, data }); }, sendUserMessage(prompt: string) { prompts.push(prompt); } } as any);
   await fire('session_start');
   const config = join(root, 'sessions.json');
   await writeFile(config, JSON.stringify({ sessions: [{ id: 'homelab', name: 'Homelab', sessionId }] }));
   const state = join(root, 'state');
-  const verify = async (meta: Body) => { assert.equal(meta.paneId, 'w1:p1'); assert.equal(meta.sessionFile, '/fake-session.jsonl'); };
+  const verify = async (meta: Body) => { assert.equal(meta.paneId, 'w1:p1'); assert.equal(meta.sessionFile, '/fake-session.jsonl'); return { cwd: '/projects/homelab' }; };
   let backend = new SessionBackend(config, env.PI_SESSION_BRIDGE_DIR, state, verify);
   const socket = () => join(env.PI_SESSION_BRIDGE_DIR, `${sessionId}.sock`);
   return {
@@ -125,6 +126,27 @@ test('session replacement unregisters the previous session and cleans sockets on
   assert.deepEqual(await app.backend.list(), []);
   await assert.rejects(readFile(oldSocket), { code: 'ENOENT' });
   await assert.rejects(app.backend.complete(input, () => {}, signal()), error(503));
+});
+
+test('automatic discovery preserves aliases and follows new registered sessions without redirecting old models', async t => {
+  const app = await fixture(); t.after(() => app.close());
+  await writeFile(app.config, JSON.stringify({ discovery: 'all', sessions: [{ id: 'homelab', name: 'Homelab', sessionId: 'session-one' }] }));
+  assert.deepEqual(await app.backend.list(), [{ id: 'pi/homelab', name: 'Homelab' }]);
+  await app.switchSession();
+  await writeFile(join(app.root, 'run', 'stale.json'), '{}');
+  await writeFile(join(app.root, 'run', 'broken.json'), 'invalid');
+  const model = `pi/homelab-${createHash('sha256').update('session-two').digest('hex').slice(0, 12)}`;
+  assert.deepEqual(await app.backend.list(), [{ id: model, name: 'homelab · sion-two' }]);
+  await assert.rejects(app.backend.complete(input, () => {}, signal()), error(503));
+  app.setIdle(false);
+  assert.equal((await app.backend.list())[0].name, 'homelab · sion-two (busy)');
+  app.setIdle(true);
+  const work = app.backend.complete({ ...input, model }, () => {}, signal());
+  await app.waitForPrompt(); await app.finish(); await work;
+  const path = join(app.root, 'run', 'session-two.json');
+  const meta = JSON.parse(await readFile(path, 'utf8'));
+  await writeFile(path, JSON.stringify({ ...meta, nonce: 'wrong' }));
+  assert.deepEqual(await app.backend.list(), []);
 });
 
 test('identity mismatch is not silently redirected to another pane/session', async t => {

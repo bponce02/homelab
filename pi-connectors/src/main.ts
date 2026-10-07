@@ -17,14 +17,16 @@ const owner = join(state, '.server-lock');
 await writeFile(owner, '', { flag: 'a', mode: 0o600 });
 const release = await lockfile.lock(owner, { stale: 30_000, update: 10_000, retries: 0 });
 let backend: Backend;
-let cleanup = () => {};
+let cleanup: () => void | Promise<void> = () => {};
 if (mode === 'codex') {
   const { codexModels, CodexBackend } = await import('./codex.ts');
   backend = new CodexBackend(codexModels(state));
 } else {
   const { SessionBackend } = await import('./sessions.ts');
   const sessions = new SessionBackend(process.env.PI_SESSIONS_CONFIG ?? './sessions.json', process.env.PI_SESSION_BRIDGE_DIR ?? join(homedir(), '.local/state/pi-gateway/run'), state);
-  backend = sessions; cleanup = () => sessions.close();
+  const { startHistorySync } = await import('./librechat-sync.ts');
+  const stopSync = await startHistorySync(() => sessions.snapshots());
+  backend = sessions; cleanup = async () => { await stopSync(); sessions.close(); };
 }
 const server = apiServer(backend, key);
 server.requestTimeout = 60_000;
@@ -35,7 +37,7 @@ const stop = async () => {
   if (stopping) return; stopping = true;
   server.closeAllConnections();
   await new Promise<void>(done => server.close(() => done()));
-  cleanup(); await release();
+  await cleanup(); await release();
 };
 process.on('SIGTERM', () => { void stop(); });
 process.on('SIGINT', () => { void stop(); });

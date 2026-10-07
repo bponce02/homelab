@@ -3,10 +3,27 @@ import { mkdir, writeFile, unlink, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
 import { readJson, json, ApiError } from '../src/http.ts';
+import { historyMessages, remoteTurn } from '../src/session-history.ts';
+import { notificationConfig, sendNotification } from '../src/notifications.ts';
 
 export default function (pi: ExtensionAPI) {
+  pi.registerTool({
+    name: 'notify_user',
+    label: 'Notify User',
+    description: 'Send an update to your LibreChat inbox and opted-in devices, linked to this synced Pi session. Use for requested reminders or important outcomes. Do not include secrets. Queued does not mean displayed on a device.',
+    parameters: Type.Object({ title: Type.String({ minLength: 1, maxLength: 120 }), body: Type.String({ minLength: 1, maxLength: 2000 }) }, { additionalProperties: false }),
+    async execute(toolCallId, input, signal, _update, context) {
+      try {
+        const result = await sendNotification(await notificationConfig(), context.sessionManager.getSessionId(), toolCallId, input, signal);
+        return { content: [{ type: 'text', text: JSON.stringify(result) }], details: result };
+      } catch {
+        throw new Error('LibreChat notification failed. Configure notification forwarding and sync this session first; retry with the same request only if the previous result is known.');
+      }
+    },
+  });
   let server: Server | undefined;
   let metadata: string | undefined;
   let socket: string | undefined;
@@ -52,6 +69,12 @@ export default function (pi: ExtensionAPI) {
     const listener = createServer(async (req, res) => {
       try {
         if (req.method === 'GET' && req.url === '/status') { json(res, 200, { sessionId: id, nonce, busy: !!active || !ctx.isIdle() }); return; }
+        if (req.method === 'GET' && req.url === '/history') {
+          if (active || !ctx.isIdle() || ctx.hasPendingMessages()) throw new ApiError(409, 'Pi is busy');
+          const snapshot = { sessionId: id, nonce, cwd: ctx.cwd, title: pi.getSessionName(), leafId: ctx.sessionManager.getLeafId(), messages: historyMessages(ctx.sessionManager.getBranch()) };
+          if (Buffer.byteLength(JSON.stringify(snapshot)) > 2 * 1024 * 1024) throw new ApiError(413, 'Pi text history exceeds sync limit');
+          json(res, 200, snapshot); return;
+        }
         if (req.method !== 'POST' || req.url !== '/prompt') throw new ApiError(404, 'Not found');
         const body = await readJson(req, 256 * 1024);
         if (body.nonce !== nonce || body.sessionId !== ctx.sessionManager.getSessionId()) throw new ApiError(409, 'Session identity changed');
@@ -59,8 +82,10 @@ export default function (pi: ExtensionAPI) {
         if (/^[!/]/.test(body.prompt.trimStart())) throw new ApiError(400, 'CLI commands are not accepted remotely');
         if (seen.has(body.id)) throw new ApiError(409, 'Request already submitted; inspect the Pi transcript');
         if (active || !ctx.isIdle() || ctx.hasPendingMessages()) throw new ApiError(409, 'Pi is busy; wait until it settles');
+        const remote = remoteTurn(body.remote);
+        if (remote?.expectedLeaf !== undefined && remote.expectedLeaf !== ctx.sessionManager.getLeafId()) throw new ApiError(409, 'Pi context changed; wait for history sync and refresh the chat');
         seen.add(body.id);
-        pi.appendEntry('pi-gateway-request', { id: body.id });
+        pi.appendEntry('pi-gateway-request', { id: body.id, ...(remote && { remote }) });
         active = { id: body.id, res, text: '', messageText: '' };
         res.writeHead(200, { 'Content-Type': 'application/x-ndjson' });
         res.flushHeaders();

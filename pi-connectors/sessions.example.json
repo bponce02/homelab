@@ -1,4 +1,5 @@
 {
+  "discovery": "all",
   "sessions": [
     {
       "id": "homelab",

@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fauxProvider, fauxAssistantMessage, InMemoryCredentialStore } from '@earendil-works/pi-ai';
 import { createAgentSession, discoverAndLoadExtensions, ModelRuntime, SessionManager, SettingsManager, type ResourceLoader } from '@earendil-works/pi-coding-agent';
-import { localRequest, lines } from '../src/session-protocol.ts';
+import { localRequest, localJson, lines } from '../src/session-protocol.ts';
 
 test('extension loads through Pi jiti and completes a real isolated SDK session with a fake provider', async t => {
   const root = await mkdtemp(join(tmpdir(), 'pi-sdk-test-'));
@@ -39,10 +39,18 @@ test('extension loads through Pi jiti and completes a real isolated SDK session 
   await session.bindExtensions({});
   const id = manager.getSessionId();
   const meta = JSON.parse(await readFile(join(root, 'run', `${id}.json`), 'utf8'));
-  const reply = await localRequest(join(root, 'run', `${id}.sock`), '/prompt', { id: 'a'.repeat(64), sessionId: id, nonce: meta.nonce, prompt: 'Test only' }, AbortSignal.timeout(5000));
+  const reply = await localRequest(join(root, 'run', `${id}.sock`), '/prompt', { id: 'a'.repeat(64), sessionId: id, nonce: meta.nonce, prompt: 'Test only', remote: { conversationId: 'test-chat', userMessageId: 'test-user', responseMessageId: 'test-answer', expectedLeaf: manager.getLeafId() } }, AbortSignal.timeout(5000));
   assert.equal(reply.statusCode, 200);
   const events = []; for await (const event of lines(reply)) events.push(event);
   assert.deepEqual(events.at(-1), { type: 'done', text: 'SDK reply' });
   assert.equal(session.getLastAssistantText(), 'SDK reply');
+  assert.equal(faux.state.callCount, 1);
+  const history = await localJson(join(root, 'run', `${id}.sock`), '/history');
+  assert.equal(history.sessionId, id);
+  assert.equal(history.leafId, manager.getLeafId());
+  assert.deepEqual(history.messages.map((message: any) => [message.role, message.text]), [['user', 'Test only'], ['assistant', 'SDK reply']]);
+  assert.equal(history.messages[1].remote.responseMessageId, 'test-answer');
+  const stale = await localRequest(join(root, 'run', `${id}.sock`), '/prompt', { id: 'b'.repeat(64), sessionId: id, nonce: meta.nonce, prompt: 'Do not send', remote: { conversationId: 'test-chat', userMessageId: 'other-user', responseMessageId: 'other-answer', expectedLeaf: 'old-leaf' } });
+  assert.equal(stale.statusCode, 409); stale.resume();
   assert.equal(faux.state.callCount, 1);
 });

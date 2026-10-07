@@ -5,9 +5,15 @@
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
 - **Codex Subscription** imports pinned `@earendil-works/pi-ai@1.0.4` for subscription OAuth, refresh, model discovery, and inference. LibreChat owns its conversation, tools, memory, and schedules. No CLIProxyAPI dependency, account pool, management dashboard, or Pi agent runs here.
-- **Local Pi** runs on the laptop beside Herdr. A small extension exposes each opted-in Pi session over a private Unix socket. The HTTP gateway verifies Herdr's pane/session identity and exposes only explicitly allowlisted sessions as models. Pi owns its existing history, tools, instructions, and active branch. No terminal scraping, second agent, MongoDB edits, or history synchronization.
+- **Local Pi** runs on the laptop beside Herdr. A small extension exposes each opted-in Pi session over a private Unix socket. The HTTP gateway verifies Herdr's pane/session identity and exposes all registered running sessions when `discovery` is `all`, or only explicitly allowlisted sessions otherwise. Pi owns its existing history, tools, instructions, and active branch. No terminal scraping or second agent. Optional [Projects/history sync](../librechat/pi-sync/README.md) pushes text-only snapshots into a small authenticated LibreChat backend integration; it is disabled unless explicitly configured.
 
 `GET /health` is unauthenticated liveness only. `GET /v1/models` and `POST /v1/chat/completions` require `Authorization: Bearer <client key>`. Both JSON and SSE responses work. These are **single-owner connectors**, not multi-tenant services. A Local Pi key grants the ability to request actions with the local Pi process's OS permissions.
+
+## Native fork integration
+
+The personal homelab now runs LibreChat fork image `local/librechat-homelab:174ee2b46`. Native history sync is enabled; the old image-patching prototype is not used. Idle registered sessions are imported into Projects automatically.
+
+The bridge also registers `notify_user`, forwarding title/body plus the real session/tool-call identity to LibreChat's existing inbox/push service. `~/.local/state/pi-gateway/librechat-notify.json` contains the notification URL and path to the private sync key; credentials never enter model arguments. Existing Pi processes need `/reload` after their current turn settles to load this tool. New processes load it automatically. Notifications require an already-synced session; no automatic completion alert or extra approval prompt is added.
 
 ## Local checks
 
@@ -74,6 +80,10 @@ The server is available internally at `http://codex-connector:8788/v1` on Docker
 
 Supported: text/system/developer history, inline base64 images, function definitions/calls/results, reasoning summaries, usage, JSON/SSE, and upstream cancellation. The adapter never executes tools. Remote image URLs are rejected rather than fetched. Structured response formats, legacy function APIs, logprobs, stop sequences, named forced tool calls, and unsupported sampling options are rejected. `tool_choice` supports auto/none/required. Pi/Codex controls model-specific reasoning and token limits; `max_tokens` is not a guaranteed hard budget on the subscription transport. The LibreChat example drops sampling/budget knobs rather than implying such guarantees.
 
+## Optional LibreChat Projects sync
+
+See [Pi session → LibreChat Projects sync](../librechat/pi-sync/README.md) for the opt-in server overlay, owner-specific credentials, safeguards, and rollout. It creates named project-grouped chats with their Pi session automatically selected. The original gateway remains the prompt/reply transport. Live activation requires reloading the bridges and restarting LibreChat/the idle gateway; the default deployment does not import history.
+
 ## Local Pi: installed gateway and session activation
 
 This runs **on the local machine**, not in the homelab Docker stack. The laptop must remain awake, connected to Tailscale, and running the selected Herdr/Pi sessions.
@@ -82,10 +92,10 @@ Current installation:
 
 - User service: `pi-session-gateway.service`, enabled and running on `100.126.158.27:8787` (Tailscale only).
 - Unit: `~/.config/systemd/user/pi-session-gateway.service`; non-secret configuration: `~/.config/pi-gateway.env`.
-- Private key, request journal, and allowlist: `~/.local/state/pi-gateway/`; `sessions.json` allows only the current homelab Pi conversation as `pi/homelab`.
+- Private key, request journal, and allowlist: `~/.local/state/pi-gateway/`; `sessions.json` uses `"discovery": "all"` to expose every registered running Herdr Pi session, preserving `pi/homelab` as an alias for the original conversation.
 - The bridge path has been appended to `~/.pi/agent/settings.json`. The original settings are backed up at `~/.local/state/pi-gateway/backups/pi-settings-before-bridge.json`.
 - **Next:** run `/reload` in that homelab Pi conversation. Once Pi is idle, refresh LibreChat, select **Local Pi → pi/homelab**, and send a harmless message. No extra API-key entry is needed.
-- User-service lingering is not enabled. The service starts with user login; it does not keep the laptop awake. `/new` or switching to a different Pi session requires deliberately updating the allowlist rather than silently redirecting the existing model.
+- User-service lingering is not enabled. The service starts with user login; it does not keep the laptop awake. `/new` or switching Pi sessions automatically exposes a new project-and-session-based model; existing model IDs never redirect to another conversation.
 
 Inspect or stop the gateway with `systemctl --user status pi-session-gateway` and `systemctl --user stop pi-session-gateway`. Setup reference for another installation follows.
 
@@ -101,7 +111,7 @@ Run `/reload` manually in the Herdr Pi sessions you want to expose. For a new Pi
 
 The extension activates only when the session already has `HERDR_ENV=1`, `HERDR_PANE_ID`, and `HERDR_SOCKET_PATH`. It creates private registrations under `~/.local/state/pi-gateway/run/`. No other pane is selected or controlled. It does not submit anything merely by loading.
 
-### 2. Allowlist stable session IDs and create a client key
+### 2. Configure discovery and create a client key
 
 From this directory:
 
@@ -110,10 +120,12 @@ PI_CONNECTOR_STATE="$HOME/.local/state/pi-gateway" npm run setup
 cp -n sessions.example.json "$HOME/.local/state/pi-gateway/sessions.json"
 ```
 
-Edit `~/.local/state/pi-gateway/sessions.json`. Use the Pi **session UUID**, not the Herdr pane ID, as `sessionId`. Registration filenames in `~/.local/state/pi-gateway/run/` contain the UUID; their JSON records contain the matching Herdr pane and session file. `herdr agent get "$HERDR_PANE_ID"` can confirm the current pane's session file. For example:
+Set `"discovery": "all"` in `~/.local/state/pi-gateway/sessions.json` to discover all running bridge registrations automatically. Optional `sessions` entries provide stable aliases and friendly names; omit `discovery` to restrict access to those entries. All discovered sessions are accessible to authenticated gateway clients, including their existing context and tools. Existing Pi processes need `/reload` once to register the bridge; sessions outside Herdr are not registered. New sessions appear as `pi/<project-or-worktree>-<12-character-session-hash>` without configuration edits. Names come from the verified Herdr working directory; the session suffix distinguishes conversations in the same project. Project-name changes change the discovered model ID rather than redirecting an old ID.
+
+For aliases, use the Pi **session UUID**, not the Herdr pane ID, as `sessionId`. Registration filenames in `~/.local/state/pi-gateway/run/` contain the UUID; their JSON records contain the matching Herdr pane and session file. `herdr agent get "$HERDR_PANE_ID"` can confirm the current pane's session file. For example:
 
 ```json
-{"sessions":[{"id":"homelab","name":"Homelab Pi","sessionId":"ACTUAL-PI-SESSION-UUID"}]}
+{"discovery":"all","sessions":[{"id":"homelab","name":"Homelab Pi","sessionId":"ACTUAL-PI-SESSION-UUID"}]}
 ```
 
 The client model is `pi/homelab`. The config is re-read for discovery and each request. Offline/unregistered/mismatched sessions are omitted from discovery. Busy sessions remain discoverable but refuse work with HTTP 409. Multiple LibreChat chats targeting the same model share the **same Pi context**; starting a new LibreChat chat does not reset Pi.
