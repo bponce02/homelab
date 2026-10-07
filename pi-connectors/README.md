@@ -1,6 +1,6 @@
 # Pi connectors for LibreChat
 
-**Codex Subscription is verified end-to-end. The Local Pi gateway and LibreChat endpoint are configured; the selected Pi conversation still needs `/reload` to activate its bridge.** This single-user LibreChat instance supplies both connector keys server-side; no per-user key entry is needed. New account registration is disabled. CLIProxyAPI is unchanged, and no prompt has been injected into the existing Pi conversation.
+**Codex Subscription is verified end-to-end. The Local Pi gateway and LibreChat endpoint are configured; the selected Pi conversation still needs `/reload` to activate its bridge.** This single-user LibreChat instance supplies both connector keys server-side; no per-user key entry is needed. New account registration is disabled. CLIProxyAPI is retired; the independently authenticated Codex connector remains running. No prompt has been injected into the existing Pi conversation.
 
 Two independent processes share a small authenticated OpenAI-compatible HTTP layer:
 
@@ -177,4 +177,4 @@ Local Pi uses server-side authentication too. Its `pi/homelab` fallback model do
 
 **Codex Subscription** is already included in `endpoints.agents.allowedProviders`; **Local Pi** must not be added. Keep Local Pi in ordinary chat mode with LibreChat tools/agents disabled. Keep `titleConvo: false`; automatic title/summary/background generation must not send extra prompts into a real Pi session. Do not schedule Local Pi chats in this initial integration. No frontend fork is required.
 
-Next, activate and verify Local Pi discovery, busy rejection, one harmless forwarded prompt, streaming, and disconnect behavior. Existing CLIProxyAPI remains untouched until explicitly retired.
+Next, activate and verify Local Pi discovery, busy rejection, one harmless forwarded prompt, streaming, and disconnect behavior. CLIProxyAPI has been retired without changing this connector or its independent OAuth credentials.

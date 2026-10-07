@@ -39,13 +39,6 @@
         reverse_proxy librechat:3080
     }
 
-    @cliproxy host cliproxy.{$MY_DOMAIN}
-    handle @cliproxy {
-        @root path /
-        redir @root /management.html 302
-        reverse_proxy cliproxyapi:8317
-    }
-
     @executor host executor.{$MY_DOMAIN}
     handle @executor {
         reverse_proxy executor:4788
