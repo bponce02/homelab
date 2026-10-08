@@ -1,5 +1,9 @@
 version: 1.3.17
 cache: true
+codexSearch:
+  enabled: true
+  baseUrl: http://codex-connector:8788/v1
+  model: gpt-6.1-sol
 interface:
   schedules:
     use: true

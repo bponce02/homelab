@@ -2,6 +2,7 @@ import { createModels, type Context, type Message, type Models, type Tool, type 
 import { openaiCodexProvider } from '@earendil-works/pi-ai/providers/openai-codex';
 import { ApiError, response, type Backend, type Body, type Delta } from './http.ts';
 import { FileCredentials } from './credentials.ts';
+import { nativeSearch } from './search.ts';
 
 export function codexModels(directory: string) {
   const models = createModels({ credentials: new FileCredentials(directory) });
@@ -53,7 +54,8 @@ export function toContext(body: Body, model: Model<Api>): Context {
     } else throw new ApiError(400, 'Unsupported message role');
   }
   if (body.tools !== undefined && !Array.isArray(body.tools)) throw new ApiError(400, 'tools must be an array');
-  const tools: Tool[] = (body.tools ?? []).map((tool: any) => {
+  nativeSearch(body.tools);
+  const tools: Tool[] = (body.tools ?? []).filter((tool: any) => tool?.type !== 'web_search').map((tool: any) => {
     if (tool?.type !== 'function' || typeof tool.function?.name !== 'string' || tool.function.parameters?.type !== 'object') throw new ApiError(400, 'Only function tools with object schemas are supported');
     return { name: tool.function.name, description: tool.function.description ?? '', parameters: tool.function.parameters };
   });
@@ -81,7 +83,8 @@ export class CodexBackend implements Backend {
     const maxTokens = body.max_completion_tokens ?? body.max_tokens;
     if (maxTokens !== undefined && (!Number.isInteger(maxTokens) || maxTokens <= 0)) throw new ApiError(400, 'Invalid token limit');
     if (body.temperature !== undefined && (typeof body.temperature !== 'number' || body.temperature < 0 || body.temperature > 2)) throw new ApiError(400, 'Invalid temperature');
-    const stream = this.models.streamSimple(model, context, { signal, transport: 'sse', toolChoice: body.tool_choice, temperature: body.temperature, ...(maxTokens ? { maxTokens } : {}), ...(body.reasoning_effort ? { reasoning: body.reasoning_effort } : {}) });
+    const search = nativeSearch(body.tools);
+    const stream = this.models.streamSimple(model, context, { signal, transport: 'sse', ...(search ? { onPayload: search.onPayload, onProviderStreamEvent: search.onProviderStreamEvent } : {}), toolChoice: body.tool_choice, temperature: body.temperature, ...(maxTokens ? { maxTokens } : {}), ...(body.reasoning_effort ? { reasoning: body.reasoning_effort } : {}) });
     let toolIndex = 0;
     for await (const event of stream) {
       if (event.type === 'text_delta') emit({ content: event.delta });
@@ -91,6 +94,12 @@ export class CodexBackend implements Backend {
     }
     const answer = await stream.result();
     if (answer.stopReason === 'error' || answer.stopReason === 'aborted') throw new ApiError(502, 'Codex did not finish successfully');
-    return completion(body, answer);
+    const result = completion(body, answer);
+    if (search) {
+      const metadata = search.result();
+      if (body.tool_choice === 'required' && !metadata.performed) throw new ApiError(502, 'Native Codex search did not run');
+      result.choices[0].message.native_search = metadata;
+    }
+    return result;
   }
 }

@@ -1,5 +1,5 @@
 services:
   librechat:
-    image: local/librechat-homelab:174ee2b46
+    image: local/librechat-homelab:48f12a8f2
     env_file:
       - ../config/env/librechat/fork.env

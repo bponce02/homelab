@@ -11,9 +11,19 @@ Two independent processes share a small authenticated OpenAI-compatible HTTP lay
 
 ## Native fork integration
 
-The personal homelab now runs LibreChat fork image `local/librechat-homelab:174ee2b46`. Native history sync is enabled; the old image-patching prototype is not used. Idle registered sessions are imported into Projects automatically.
+The personal homelab runs the versioned LibreChat fork image selected in `../librechat/docker-compose.fork.yml`. Native history sync is enabled; the old image-patching prototype is not used. Idle registered sessions are imported into Projects automatically.
 
 The bridge also registers `notify_user`, forwarding title/body plus the real session/tool-call identity to LibreChat's existing inbox/push service. `~/.local/state/pi-gateway/librechat-notify.json` contains the notification URL and path to the private sync key; credentials never enter model arguments. Existing Pi processes need `/reload` after their current turn settles to load this tool. New processes load it automatically. Notifications require an already-synced session; no automatic completion alert or extra approval prompt is added.
+
+## Native Codex web search
+
+LibreChat's **Codex Web Search** agent tool uses the existing subscription login and this connector. Normal Codex chats are unchanged: search is declared only for requests that explicitly include `{"type":"web_search"}` in `tools`. The declaration optionally accepts boolean `external_web_access` (true for live search, false for cached search). All other native fields, duplicate declarations and unknown tool types are rejected. Function tools remain supported alongside the native declaration.
+
+The connector reuses the MIT-licensed payload helper from [Evizero/pi-codex-web-search](https://github.com/Evizero/pi-codex-web-search), revision `c37a88c376ce2023da3322806b367a000a351c23`; see `CODEX-SEARCH-LICENSE`. Pi AI still owns authentication, request streaming and cancellation. No extra extension is installed into running Pi sessions and no second agent or CLI subprocess is launched.
+
+Nonstreaming responses include `choices[0].message.native_search` with `performed` (a completed native call was observed) and up to 20 deduplicated HTTP(S) sources. Source titles and URLs are bounded; credential-bearing URLs are discarded. Requests with `tool_choice: required` fail if native search never completes. Native calls are not translated into executable client function calls. Streaming text still works; structured native-search metadata is currently provided only in nonstreaming responses.
+
+The LibreChat policy is `codexSearch`, disabled by default in the fork and enabled in this homelab's YAML. Its server-only `CODEX_CONNECTOR_API_KEY` is the existing connector key. The configured search model is `gpt-6.1-sol`. Answers and sources are untrusted web/model content, not arbitrary URL extraction. Existing browser/extraction tools remain available.
 
 ## Local checks
 

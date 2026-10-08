@@ -1,5 +1,6 @@
 services:
   codex-connector:
+    image: local/pi-codex-connector:48f12a8f2
     build: .
     restart: unless-stopped
     user: "1000:1000"
