@@ -72,6 +72,21 @@ test('history, tool results, and inline images are translated; external images a
   assert.throws(() => toContext({ messages: [{ ...messages[2], tool_calls: [{ type: 'function', id: 't', function: { name: 'f', arguments: '[]' } }] }] }, model), ApiError);
 });
 
+test('reader PNG and JPEG blocks remain images in tool results and projected user turns', () => {
+  const { faux } = mock();
+  for (const mimeType of ['image/png', 'image/jpeg']) {
+    const image = { type: 'image_url', image_url: { url: `data:${mimeType};base64,/9j/4A==` } };
+    const context = toContext({ messages: [
+      { role: 'assistant', content: null, tool_calls: [{ type: 'function', id: 'read_1', function: { name: 'read_file', arguments: '{"path":"/tmp/image"}' } }] },
+      { role: 'tool', tool_call_id: 'read_1', content: [image] },
+      { role: 'user', content: [image] },
+    ] }, faux.getModel());
+    for (const message of context.messages.slice(1)) {
+      assert.deepEqual(message.content, [{ type: 'image', mimeType, data: '/9j/4A==' }]);
+    }
+  }
+});
+
 test('upstream errors are sanitized and cancellation reaches the backend', async t => {
   let cancelled = false;
   const backend: Backend = {
