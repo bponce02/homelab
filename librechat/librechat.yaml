@@ -1,5 +1,11 @@
 version: 1.3.17
 cache: true
+workspace:
+  enabled: true
+  ownerId: '6abf28a508970106268de763'
+  baseUrl: http://open-terminal:8000
+  rootPath: /home/user
+
 codexSearch:
   enabled: true
   baseUrl: http://codex-connector:8788/v1
