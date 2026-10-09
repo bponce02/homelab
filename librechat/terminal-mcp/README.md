@@ -27,6 +27,10 @@ docker run --rm --network none --cpus 1 --memory 512m --memory-swap 512m \
   -m unittest -v test_server
 ```
 
-## Rollout
+## Deployment
 
-The fix is not deployed yet. After approval and an idle check, back up the current adapter source/image and private Compose files, build this Dockerfile into a distinct image tag, update only the existing `open-terminal-mcp` service's image, and recreate that service with `--no-deps --no-build`. Preserve its existing environment, network and endpoint. Do not recreate LibreChat, Open Terminal, Mongo or terminal volumes, or rewrite the full live Compose file from the repository's pending MCP-only deployment layout. Verify MCP reconnect and both image reads through General afterward. Rollback is the prior adapter image/source; no filesystem/database restore is required.
+Deployed as `local/librechat-terminal-mcp:59cbb67` after the owner's approval and an idle check. Only Compose service `terminal-mcp` (container `open-terminal-mcp`) was recreated; its existing environment, network and endpoint were preserved. LibreChat's existing owner connection was reinitialized successfully without OAuth or an application restart. Both reported files returned correct image blocks from the deployed HTTP MCP endpoint, and the existing Codex model visually identified each as the Tetris menu. One PNG model-verification request failed transiently; an isolated retry passed. General retained 82 tools. Open Terminal, LibreChat, Mongo, connectors and terminal volumes were not recreated.
+
+Private rollback directory: `/home/melissa/.local/state/librechat-fork/rollback-terminal-images-59cbb67/`, containing prior adapter source, Compose and image identity. The previous `local/librechat-terminal-mcp:fastmcp-2.14.5` image remains available. The build used the existing one-core/6-GiB builder, which was stopped afterward. Temporary key/model-helper files were removed. CI/review remains unverified.
+
+For future rollouts, retain this targeted procedure: back up the current adapter source/image and private Compose files, build a distinct image tag, and recreate only service `terminal-mcp` with `--no-deps --no-build`. Do not rewrite the full live Compose file from the repository's pending MCP-only deployment layout. The optional `../docker-compose.terminal-mcp.yml` pins the deployed image when merged with the existing REST-mode live Compose file; it is not a complete deployment. Rollback is the prior adapter image/source and a reconnection of that MCP server; no filesystem/database restore is required.
