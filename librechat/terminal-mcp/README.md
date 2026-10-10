@@ -27,6 +27,14 @@ docker run --rm --network none --cpus 1 --memory 512m --memory-swap 512m \
   -m unittest -v test_server
 ```
 
+## LibreChat custom-provider bridge
+
+The binary reader fix alone was not enough for General: LibreChat's tool loader/invocation used the endpoint label `Codex Subscription`, triggering its unknown-provider text fallback. LibreChat patches `25ece7f71` and `7a7c003f1` now resolve configured endpoint names to the actual backing provider and preserve that provider at invocation. Current app image is `local/librechat-homelab:7a7c003f1`; the MCP adapter remains `59cbb67`.
+
+A real General chat now reads `frame-23.jpg` without an attachment or separate vision model and correctly identifies the active red Z in the upper-left (columns 2–4, top two rows), plus the purple T above the orange L. Source: https://librechat.develium.dev/c/1b2dc129-7750-5536-9ad7-7cdd95000e73. The frame was independently viewed and agrees. The earlier failed test chat was deleted; the successful verification chat remains. Source-boundary tests: 163 API tests and 147 legacy MCP/loader tests, API typecheck/build and ESLint passed.
+
+The backend-only image layers validated compiled API output and changed CJS adapters onto `361f0ecdc`, using `../Dockerfile.mcp-provider`. No dependency or frontend change is carried. Build with the host-local legacy Docker builder capped at one CPU/512 MiB; a containerized BuildKit builder cannot see the host-local base tag. Copy only the declared build-context files from the LibreChat checkout, not credentials. Private app rollback baseline is `/home/melissa/.local/state/librechat-fork/rollback-mcp-provider-25ece7f71/`. Only LibreChat was recreated after idle checks; no terminal service/file or selected tool was changed. Remote CI/review is unverified.
+
 ## Deployment
 
 Deployed as `local/librechat-terminal-mcp:59cbb67` after the owner's approval and an idle check. Only Compose service `terminal-mcp` (container `open-terminal-mcp`) was recreated; its existing environment, network and endpoint were preserved. LibreChat's existing owner connection was reinitialized successfully without OAuth or an application restart. Both reported files returned correct image blocks from the deployed HTTP MCP endpoint, and the existing Codex model visually identified each as the Tetris menu. One PNG model-verification request failed transiently; an isolated retry passed. General retained 82 tools. Open Terminal, LibreChat, Mongo, connectors and terminal volumes were not recreated.
