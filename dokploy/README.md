@@ -140,9 +140,9 @@ Retire it only after every retained service and host-level dependency has a repl
 
 ## Next decisions
 
-1. Act on the [audit](INVENTORY.md#live-audit-2026-11-06): named volumes and live databases are not reliably backed up today. That gap exists regardless of the migration.
-2. Confirm the fresh Actual Budget install as the pilot.
-3. Build the Proxmox machine and Dokploy VM with both firewall layers, then run the privacy checks before installing anything else.
+1. Legacy backup gaps from the [audit](INVENTORY.md#live-audit-2026-11-06) (named volumes, live database copies) are accepted until migration: the legacy host is being replaced, so they won't be fixed in place. Each migrated service must get correct backups in Dokploy instead.
+2. Pilot: fresh Actual Budget install (confirmed). Whether the new instance needs an Actual MCP server is deferred.
+3. Build the Proxmox machine and Dokploy VM (owner, in progress). Then: apply both firewall layers, run the privacy checks, create the S3 bucket, install Dokploy.
 4. Decide where custom images will live (private registry or documented rebuild), and how secrets will be recorded outside Dokploy.
 5. Apply hub/LibreChat deployment details when the rebuild settles them.
 
