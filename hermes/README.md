@@ -1,3 +1,5 @@
+> **Retired 2026-11-06.** The gateway and usage-snapshot timer are stopped and disabled on the homelab. `~/.hermes` and the unit files are preserved. Personal Management no longer uses Hermes. The notes below describe the retired install.
+
 # Hermes Agent
 
 [Hermes Agent](https://github.com/NousResearch/hermes-agent) ("the agent that

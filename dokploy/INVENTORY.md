@@ -10,7 +10,7 @@ Sources: this repository at commit `5defd84`, its service READMEs, and a read-on
 | Homepage | Candidate | `homepage:latest` (floating) | Bind `config/volumes/homepage/config` (`settings.yaml` is tracked; other config files may exist only on the host) | `config/env/homepage/.env` | Docker socket |
 | Dozzle | Candidate | `dozzle:latest` (floating) | None | None | Docker socket (read access to all host containers and logs) |
 | Stirling PDF + MCP adapter | Candidate after LibreChat decisions; the adapter depends on Open Terminal's workspace and needs rethinking when Open Terminal is retired | Server pinned by digest; adapter built locally (`local/stirling-pdf-mcp`) | Binds under `config/volumes/stirlingpdf/{trainingData,extraConfigs,customFiles,logs,pipeline}`; shares external volume `llm_terminal-home` | `config/env/stirlingpdf/mcp.env` | `llm_terminal-home`; LibreChat is a client |
-| Personal Management | Candidate; complex | Built from private GitHub repo `main` (unpinned) | Bind `config/volumes/personal-management/data` (SQLite); read-only host path `/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots` | `config/env/personal-management/.env`; `personal-management/.env` (`GIT_AUTH_TOKEN`) | Hermes on the host; loopback port `127.0.0.1:8100` for host automations |
+| Personal Management | **Good candidate after the update.** Upstream `7af02cc96` (2026-11-06) removed Hermes chat, quota widgets and remote audio | Built from the private repo; pin a commit. The running container is the old August build | Live: bind `config/volumes/personal-management/data` (SQLite and uploads). Upstream Compose now uses a named volume `app-data` at `/app/data` (`MEDIA_ROOT=/app/data/media`). An unused `personal-management_app-data` volume also exists on the host; inspect it before assuming it's empty | `config/env/personal-management/.env` (Django secret, plus now-obsolete Hermes keys); build-time `GIT_AUTH_TOKEN` | No longer depends on Hermes. Upstream publishes `8000:8000`: drop that in Dokploy and use a domain. Its data is real, so migrate it rather than starting fresh, with a consistent SQLite backup per its README |
 | `llm` stack: Ollama, Camofox, Camofox MCP, Open Terminal | Deferred: LibreChat dependency. **Open Terminal (and its adapter and Workspace panel) planned for retirement** | Ollama `latest` (floating); Camofox images pinned by tag; Open Terminal built locally | Repo-relative bind `llm/ollama` (models; re-downloadable); named volume `llm_terminal-home` (shared workspace); Camofox anonymous volume (no managed profile) | `config/env/llm/{camofox,open-terminal}.env` | Networks `llm_terminal`, `llm_browser` used by LibreChat |
 | LibreChat + history MCP + MongoDB | **Deferred: being rebuilt** | Fork image `local/librechat-homelab:*` built outside this repo; history MCP built locally; `mongo:8.0.20` | Binds under `config/volumes/librechat/{images,uploads,logs,data,mongodb}`; `librechat/librechat.yaml` | `config/env/librechat/{.env,fork.env,history-mcp.env,pi-sync.env}`, `config/env/openrouter.env`, plus env files from `llm`, `stirlingpdf`, `pi-connectors`; VAPID keys must not change casually | `llm`, Stirling MCP, Pi connector, Executor (hosted later) |
 | Pi Codex connector | **Planned for retirement**, with the laptop Pi gateway; not migrating | Built locally (`local/pi-codex-connector:<rev>`) | Bind `config/volumes/pi-connectors/codex` (OAuth `auth.json`) | `config/env/pi-connectors/{codex.key,librechat.env}` | Audit: runs from the host checkout `/home/melissa/homelab/pi-connectors` (the README's release-directory path is out of date) |
@@ -21,7 +21,8 @@ Sources: this repository at commit `5defd84`, its service READMEs, and a read-on
 
 Host-level, not containers:
 
-- **Hermes Agent:** native install pinned in `hermes/setup.sh`; state in `~/.hermes`, including API keys. Not a Dokploy target; needs its own backup entry.
+- **Hermes Agent: retired 2026-11-06.** `hermes-gateway.service` and `hermes-usage-snapshot.timer` (systemd user units) were stopped and disabled. Unit files and `~/.hermes` (2.9 GiB, including API keys) are preserved. It is not being migrated.
+- **Future agent backend:** the agent that replaces it needs its own VM on the Proxmox machine, separate from the Dokploy VM. Its design is pending; Dokploy does not host it.
 - **Host Tailscale** (SSH, `100.126.9.60`), UFW rules, `/etc/homelab/`, and `/home/melissa/homelab-releases/` (connector release, config backups).
 - **Laptop Pi session gateway:** runs on the laptop, outside the homelab; planned for retirement with the Pi connector. When retiring it, also remove the laptop's Tailscale ACL entry for the homelab.
 - **Private rollback directories** under `/home/melissa/.local/state/librechat-fork/`.
@@ -36,6 +37,7 @@ Do not delete, prune, or migrate it unless deletion is approved for that specifi
 - Authentik, n8n, Paperless, Vikunja, Wetty, Komodo: placeholder directories under `config/{env,volumes}/`; may hold data on the host.
 - Planned retirements, once the LibreChat rebuild no longer uses them: Open Terminal workspace volume `llm_terminal-home`, `config/env/llm/open-terminal.env`, Pi connector OAuth/keys under `config/{env,volumes}/pi-connectors/`, `/home/melissa/homelab-releases/pi-connectors*`, and the laptop gateway state.
 - Legacy Actual Budget data in `config/volumes/actual-data`, after the fresh Dokploy instance replaces it.
+- Hermes: `~/.hermes`, its systemd user units, `hermes/usage-snapshot.py` output, and `/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots`.
 - Executor after the hosted move: `executor_executor-user-data`, `executor_executor-data`, and `/root/executor-manual-owner-backup/`.
 
 Archive these into the replacement backup scheme (for example, a one-time tarball to S3) before Backrest is retired. Alternatively, keep the Restic repository and its credentials for an agreed retention period.
@@ -86,7 +88,7 @@ Consequence: a rebuild from this repository would not reproduce production. For 
 - Only loopback ports are published (`127.0.0.1:8100` Personal Management, `127.0.0.1:3001` Actual MCP). No container is reachable from the LAN through Docker.
 - **The documented Docker firewall rules are not active.** `caddy/FIREWALL.md` (host only) says `ufw-docker.rules` is installed in `/etc/ufw/after*.rules`. Neither file contains `DOCKER-USER` rules, and the live `DOCKER-USER` chains are empty. Today this is harmless only because nothing publishes on a non-loopback address.
 - UFW: deny incoming; allow `tailscale0`, `docker0`, `br+`, UDP 41641 (IPv4 and IPv6).
-- Host listeners on all interfaces: SSH `:22` and **Hermes `:8642`**. Both are blocked from the LAN by UFW, not by their bind address.
+- Host listeners on all interfaces: SSH `:22` and Hermes `:8642`. Both were blocked from the LAN by UFW, not by their bind address. Hermes has since been stopped.
 - The host uses Wi-Fi (`wlp0s20f3`, `192.168.0.109`); `eno1` is down.
 
 ## Repository/live drift

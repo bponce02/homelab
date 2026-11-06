@@ -15,6 +15,7 @@ Target: Git-defined Compose stacks deployed by Dokploy, named volumes for persis
 - LibreChat and the hub: being rebuilt; final deployment details are pending. Keep the current deployment unchanged and do not design its Dokploy stack until those details are settled.
 - Other services: see the [inventory](INVENTORY.md). Actual Budget is the proposed pilot, redone as a fresh install rather than migrated.
 - Open Terminal and the Pi connection (connector and laptop gateway): planned for retirement; not migrating. Preserve their data when retired.
+- Hermes: retired (stopped and disabled 2026-11-06, data preserved). A future agent backend gets its own Proxmox VM, outside Dokploy; its design is pending.
 - Public blog: separate Droplet deployment; excluded from this migration.
 - Retired-service data: preserve until explicitly approved for deletion.
 
