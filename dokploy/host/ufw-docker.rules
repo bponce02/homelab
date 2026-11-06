@@ -1,0 +1,22 @@
+# DOCKER-USER rules for the Dokploy VM. Not installed anywhere yet.
+# Append this whole block (its own *filter ... COMMIT section) to the end of
+# /etc/ufw/after.rules and /etc/ufw/after6.rules, then `sudo ufw reload` and check with
+# `sudo iptables -S DOCKER-USER` and `sudo ip6tables -S DOCKER-USER`.
+#
+# Forwarded traffic to Docker/Swarm-published ports (Traefik 80/443, dashboard 3000)
+# is accepted only from Tailscale, loopback, and Docker's own bridges. Everything
+# else (LAN, WAN, IPv6) goes through `ufw route` rules and is then dropped.
+# Based on the homelab's caddy/ufw-docker.rules (host only, never installed there),
+# with docker_gwbridge added for Swarm services.
+*filter
+:DOCKER-USER - [0:0]
+:ufw-user-forward - [0:0]
+-A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
+-A DOCKER-USER -i lo -j RETURN
+-A DOCKER-USER -i tailscale0 -j RETURN
+-A DOCKER-USER -i docker0 -j RETURN
+-A DOCKER-USER -i docker_gwbridge -j RETURN
+-A DOCKER-USER -i br+ -j RETURN
+-A DOCKER-USER -j ufw-user-forward
+-A DOCKER-USER -j DROP
+COMMIT

@@ -126,7 +126,7 @@ sudo docker compose -f stirlingpdf/docker-compose.yml up -d
 
 Connect to Tailscale to access the homelab at its `*.develium.dev` hostnames.
 
-This list is incomplete for a full rebuild. The Pi connector runs from its release directory ([Pi connectors](pi-connectors/README.md)); Personal Management needs its build token; and the live Open Terminal adapter is not fully defined in this repository. See [repository/live drift](dokploy/INVENTORY.md#repositorylive-drift).
+This list is incomplete for a full rebuild, and the homelab's checkout has diverged from this repository (see the [2026-11-06 audit](dokploy/INVENTORY.md#live-audit-2026-11-06)). The Pi connector, Personal Management (needs its build token), and the terminal adapter are also part of the running deployment.
 
 Nextcloud and Todo are retired. Their Compose definitions and Caddy routes are removed; existing data and credentials under `config/volumes/{nextcloud,todo}` and `config/env/{nextcloud,todo}` are preserved for recovery. Do not delete them or prune their storage as part of service retirement.
 

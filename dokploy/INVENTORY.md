@@ -1,6 +1,6 @@
 # Service and data inventory
 
-Source: this repository at commit `5defd84` plus its service READMEs. **The live homelab has not been audited.** Several services are documented as running differently from their Compose files (see [Repository/live drift](#repositorylive-drift)). Confirm every row on the host (`docker ps`, `docker inspect`, `docker volume ls`, the Backrest plan configuration) before changing storage or retiring a recovery path.
+Sources: this repository at commit `5defd84`, its service READMEs, and a read-only audit of the homelab (`melissa-v2`) on 2026-11-06 ([findings](#live-audit-2026-11-06)). The tables describe the repository. Where the audit differs, the audit wins.
 
 ## Retained services
 
@@ -13,7 +13,7 @@ Source: this repository at commit `5defd84` plus its service READMEs. **The live
 | Personal Management | Candidate; complex | Built from private GitHub repo `main` (unpinned) | Bind `config/volumes/personal-management/data` (SQLite); read-only host path `/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots` | `config/env/personal-management/.env`; `personal-management/.env` (`GIT_AUTH_TOKEN`) | Hermes on the host; loopback port `127.0.0.1:8100` for host automations |
 | `llm` stack: Ollama, Camofox, Camofox MCP, Open Terminal | Deferred: LibreChat dependency. **Open Terminal (and its adapter and Workspace panel) planned for retirement** | Ollama `latest` (floating); Camofox images pinned by tag; Open Terminal built locally | Repo-relative bind `llm/ollama` (models; re-downloadable); named volume `llm_terminal-home` (shared workspace); Camofox anonymous volume (no managed profile) | `config/env/llm/{camofox,open-terminal}.env` | Networks `llm_terminal`, `llm_browser` used by LibreChat |
 | LibreChat + history MCP + MongoDB | **Deferred: being rebuilt** | Fork image `local/librechat-homelab:*` built outside this repo; history MCP built locally; `mongo:8.0.20` | Binds under `config/volumes/librechat/{images,uploads,logs,data,mongodb}`; `librechat/librechat.yaml` | `config/env/librechat/{.env,fork.env,history-mcp.env,pi-sync.env}`, `config/env/openrouter.env`, plus env files from `llm`, `stirlingpdf`, `pi-connectors`; VAPID keys must not change casually | `llm`, Stirling MCP, Pi connector, Executor (hosted later) |
-| Pi Codex connector | **Planned for retirement**, with the laptop Pi gateway; not migrating | Built locally (`local/pi-codex-connector:<rev>`) | Bind `config/volumes/pi-connectors/codex` (OAuth `auth.json`) | `config/env/pi-connectors/{codex.key,librechat.env}` | Run from `/home/melissa/homelab-releases/pi-connectors-current/`, not the checkout |
+| Pi Codex connector | **Planned for retirement**, with the laptop Pi gateway; not migrating | Built locally (`local/pi-codex-connector:<rev>`) | Bind `config/volumes/pi-connectors/codex` (OAuth `auth.json`) | `config/env/pi-connectors/{codex.key,librechat.env}` | Audit: runs from the host checkout `/home/melissa/homelab/pi-connectors` (the README's release-directory path is out of date) |
 | Executor (self-hosted) | **Not migrating** — moving to hosted | Pinned by version and digest | Named volume `executor_executor-user-data`; preserved inactive `executor_executor-data` | Retired credentials preserved; rollback in `/root/executor-manual-owner-backup/` | LibreChat MCP client |
 | Backrest | Legacy recovery path until replaced | `backrest:latest` (floating) | Binds under `config/volumes/backrest/*`; mounts `/home/melissa/homelab/` read-write at `/userdata` | `config/volumes/backrest/config/config.json` (Restic repository password, S3 credentials; copy in Bitwarden) | DigitalOcean storage |
 | Caddy + Tailscale sidecar | Replaced only after per-service cutover | Tailscale pinned; Caddy built locally with the Cloudflare DNS module | Named volume `caddy_tailscale-state` (sidecar identity); binds `config/volumes/caddy/{data,config}` (certificates) | `config/env/caddy/.env`; `/etc/homelab/caddy-dns.env` (host path outside the repo) | Cloudflare DNS, `proxy` network |
@@ -42,22 +42,63 @@ Archive these into the replacement backup scheme (for example, a one-time tarbal
 
 ## Backup coverage findings
 
-- **Backrest probably does not cover named volumes.** Its only data mount is `/home/melissa/homelab/`, while Docker named volumes live under `/var/lib/docker/volumes/`. Unless a plan outside this repository covers them, `caddy_tailscale-state`, `llm_terminal-home`, `executor_executor-user-data`, and `executor_executor-data` have no backup. Check `config.json` on the host.
-- **MongoDB and SQLite files are backed up while running.** Backrest copies live database files. Its snapshots of `config/volumes/librechat/mongodb`, Actual, and Personal Management may be inconsistent unless a hook stops writers or dumps them first. Confirm through a test restore before relying on them.
+- **Backrest does not cover named volumes** (confirmed by the audit). Its only data mount is `/home/melissa/homelab/`, while Docker named volumes live under `/var/lib/docker/volumes/`.
+- **MongoDB and SQLite files are backed up while running** (confirmed: no hooks). Snapshots of `config/volumes/librechat/mongodb`, Actual, and Personal Management may be inconsistent. Confirm through a test restore before relying on them.
 - **Host paths outside the checkout** (`/etc/homelab/`, `~/.hermes`, `homelab-releases`, rollback directories, `/root/executor-manual-owner-backup/`) are not under Backrest's mount.
 - **Custom images are not backed up.** LibreChat fork, Open Terminal, adapters, the connector, Caddy, and Personal Management exist only as local images or build from sources outside this repo. Rebuilding requires each source revision. Pushing tagged images to a private registry would remove that dependency.
 
+## Live audit (2026-11-06)
+
+Read-only: `docker ps/inspect`, volumes, networks, listeners, UFW and iptables, Backrest plans, and the host checkout's Git state. Nothing was changed.
+
+### The host checkout is the real source, not this repository
+
+- `/home/melissa/homelab` is on `main` at `6efb73f`, 20 commits behind this repository, with extensive uncommitted edits and untracked files. Deployments have been made by editing files on the host.
+- Compose files identical to this repository: `backrest`, `caddy/docker-compose.yml`, `dozzle`, `executor`, `homepage`, `pi-connectors`, `static`, `librechat/docker-compose.fork.yml`, and Homepage `settings.yaml`.
+- Different on the host: `actual-budget`, `caddy/Caddyfile`, `librechat/docker-compose.yml` (adds `agent-desktop` and `terminal-mcp`), `librechat.yaml`, `llm` (Open WebUI still defined; upstream Open Terminal `0.14.0` with 4 CPUs/6 GiB), `personal-management`, `stirlingpdf` (no MCP adapter, unpinned image), and the LibreChat overlays.
+- Untracked on the host only: `actual-budget/actual-mcp/` (an Actual MCP server built at `actual-api-26.7.0`), `caddy/FIREWALL.md`, `caddy/ufw-docker.rules`, `caddy-tailscale-staging/`, and env files.
+
+Consequence: a rebuild from this repository would not reproduce production. For services moving to Dokploy, the new `dokploy/<service>/` definitions become the source. For the rest, copy the live files into the private recovery record before changing anything.
+
+### Running containers not described by the repository
+
+- `agent-desktop` (`local/librechat-agent-desktop:0.3.3`, LibreChat project) uses the `llm_terminal-home` volume. Retire it with Open Terminal.
+- `open-terminal-mcp`: defined in the host's `librechat/docker-compose.yml`.
+- `open-webui` `v0.11.4`: still running with `WEBUI_AUTH=false`. Its repository retirement was never deployed.
+- `actual-budget-actual_mcp-1`: Actual MCP on `127.0.0.1:3001`, data in `config/volumes/actual-mcp-v267`. The fresh Actual pilot does not include it. Decide whether the new instance needs an MCP server.
+- Stopped: `blog` (now on the Droplet), Personal Management test containers, and a buildx builder.
+- Not running: `stirling-pdf-mcp`, Nextcloud, Todo. The live Caddyfile still routes `todo`, `nextcloud`, and `llm` (Open WebUI).
+
+### Storage and backups
+
+- **Backrest:** one plan, `s3-homelab`, backs up `/userdata` (= `/home/melissa/homelab`) **hourly**. It keeps 24 hourly, 30 daily and 12 monthly snapshots, has **no hooks**, and stores them in the DigitalOcean Spaces bucket `develium` (`atl1`).
+- **Confirmed: no named volume is backed up.** Unprotected:
+  - `caddy_tailscale-state`, `llm_terminal-home`
+  - `executor_executor-user-data`, `executor_executor-data`, `executor_executor-local-data`
+  - `personal-management_app-data`
+  - `komodo_{keys,mongo-config,mongo-data}` (retired Komodo)
+  - two anonymous volumes (Camofox profile, Mongo `configdb`)
+- **Confirmed: databases are copied live** (Mongo, SQLite for Actual, Personal Management, Open WebUI). Hourly snapshots may be internally inconsistent.
+- Retired data present on the host: Nextcloud, Authentik and Todo directories under `config/volumes/`, the Komodo volumes, and `blog` under `config/volumes/blog/`.
+
+### Network exposure
+
+- Only loopback ports are published (`127.0.0.1:8100` Personal Management, `127.0.0.1:3001` Actual MCP). No container is reachable from the LAN through Docker.
+- **The documented Docker firewall rules are not active.** `caddy/FIREWALL.md` (host only) says `ufw-docker.rules` is installed in `/etc/ufw/after*.rules`. Neither file contains `DOCKER-USER` rules, and the live `DOCKER-USER` chains are empty. Today this is harmless only because nothing publishes on a non-loopback address.
+- UFW: deny incoming; allow `tailscale0`, `docker0`, `br+`, UDP 41641 (IPv4 and IPv6).
+- Host listeners on all interfaces: SSH `:22` and **Hermes `:8642`**. Both are blocked from the LAN by UFW, not by their bind address.
+- The host uses Wi-Fi (`wlp0s20f3`, `192.168.0.109`); `eno1` is down.
+
 ## Repository/live drift
 
-Known places where the files in Git do not reproduce the running system:
+The [live audit](#live-audit-2026-11-06) supersedes this list: most service files differ between this repository and the host. Specific items found before the audit:
 
-1. **Open Terminal mode.** `llm/docker-compose.yml` builds an MCP-only image. `librechat/WORKSPACE.md` records that production runs upstream `0.14.0` in `run` mode with a separate `open-terminal-mcp` adapter, and that the MCP-only image must not be deployed.
-2. **Terminal MCP adapter definition.** `librechat/docker-compose.terminal-mcp.yml` sets only the image of service `terminal-mcp`. No tracked Compose file defines that service (environment, network, command), so it cannot be recreated from Git.
-3. **LibreChat image revision.** `docker-compose.fork.yml` is `7a7c003f1`, consistent with `librechat/terminal-mcp/README.md`. `librechat/FORK.md` still describes the `48f12a8f2` release.
-4. **Startup order.** The root README's start commands omit the fork overlay, Pi connector, Personal Management, and the terminal adapter.
-5. **Pi connector working directory.** It runs from a release directory, which changes its Compose project context and bind-path resolution.
+1. **Open Terminal mode.** `llm/docker-compose.yml` builds an MCP-only image; production runs upstream `0.14.0` in `run` mode.
+2. **Terminal MCP adapter.** It is defined only in the host's `librechat/docker-compose.yml`, not in this repository.
+3. **LibreChat image revision.** `docker-compose.fork.yml` (`7a7c003f1`) matches the host; `librechat/FORK.md` describes the earlier `48f12a8f2` release.
+4. **Startup order.** The root README's start commands omit the Pi connector, Personal Management, and the terminal adapter.
 
-Items 1, 2 and 5 go away with the planned Open Terminal and Pi retirements; don't spend effort reconciling them. Until those retirements happen, record the live definitions privately so the current deployment stays recoverable. Items 3 and 4 remain relevant to the LibreChat rebuild.
+Items 1 and 2 go away with the planned Open Terminal and Pi retirements; don't spend effort reconciling them. Item 3 and 4 remain relevant to the LibreChat rebuild.
 
 ## Host audit checklist (read-only)
 

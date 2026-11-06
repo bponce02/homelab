@@ -24,27 +24,51 @@ Existing Compose files and the root README describe the current deployment. Do n
 
 ### 1. Prepare the host
 
-Prefer an isolated replacement host or VM for rehearsal. Installing Dokploy on the production host changes Docker/Swarm and networking; do not treat it as a harmless application install.
+Target: a **VM on a new Proxmox machine**, separate from the current homelab. The existing services keep running untouched until each one is cut over.
 
-1. Install a supported Linux distribution, configure SSH and retain console recovery access.
-2. Provision storage and ensure enough capacity for application data, backup staging, and builds.
-3. Install Tailscale using its official installation instructions and authorize the host interactively. Verify SSH through its Tailscale address before restricting other access.
-4. Review tailnet access rules and device key expiry for unattended operation.
-5. Record the host's Tailscale IP and intended DNS names in the private recovery record.
+**Proxmox host**
 
-No Docker subnet advertisement is required for the intended ingress design: clients reach the host over Tailscale, and Traefik reaches containers. Do not enable subnet routing or Tailscale SSH merely because the example guide does; these are separate access decisions.
+1. Install Proxmox VE. Keep its web UI (`:8006`) and SSH reachable only from the LAN or the Proxmox host's own Tailscale connection; never forward them from the router.
+2. Record the Proxmox version, storage layout and root recovery method in the private recovery record.
+
+**Dokploy VM**
+
+Use a full VM, not an LXC container. Docker and Swarm inside LXC need extra privileges and are harder to firewall and restore.
+
+1. Create the VM with Ubuntu Server 24.04 LTS, the QEMU guest agent, and the network device's **Firewall** checkbox enabled. Leave the Proxmox console as the recovery path.
+2. Size it for everything planned, plus room for image builds and backup staging. Suggested starting point: 4 vCPU, 8 GiB RAM, 100 GiB disk. Grow later; Proxmox can resize disks.
+3. Install Tailscale in the VM using the official instructions and authorize it interactively. Disable key expiry for this device in the admin console. Verify SSH over its Tailscale address.
+4. Record the VM's Tailscale IP and intended DNS names in the private recovery record.
+
+No Docker subnet advertisement is required for the intended ingress design: clients reach the VM over Tailscale, and Traefik reaches containers. Do not enable subnet routing or Tailscale SSH merely because the example guide does; these are separate access decisions.
 
 ### 2. Establish the network boundary
 
-This is a prerequisite to installation, not a post-install cleanup task. Dokploy publishes dashboard and proxy ports; merely installing Tailscale does not make them private.
+This is a prerequisite to installation, not a post-install cleanup task. Dokploy publishes ports 80, 443 (Traefik) and 3000 (dashboard) on all interfaces, and Swarm listens on 2377, 7946 and 4789. Installing Tailscale does not make any of them private, and ordinary UFW input rules do not cover Docker-published ports.
 
-- Reserve ports 80, 443, and 3000 for Dokploy/Traefik.
-- Use upstream isolation during initial setup, and implement a verified Docker/Swarm-aware ingress policy before production cutover.
-- Ordinary UFW incoming rules alone are insufficient for Docker-published ports.
-- A provider firewall is an option on a VPS. For a home server, explicitly cover unwanted LAN, WAN, and IPv6 access; lack of router port forwarding alone does not establish a Tailscale-only boundary.
-- Do not expose Docker/Swarm management ports to untrusted networks.
+Two independent layers, both configured before installing Dokploy:
 
-The exact host firewall implementation is not yet selected. Do not proceed on an exposed host until it is selected and tested. Keep the existing Caddy/Tailscale sidecar unchanged in the meantime.
+**Layer 1: Proxmox VM firewall** (outside the VM, so nothing inside it can bypass it)
+
+1. Datacenter → Firewall: enable it. First confirm the Proxmox host's own rules still allow your management access (`:8006`, SSH) from the LAN, or you'll lock yourself out of the UI. The console on the physical machine is the fallback.
+2. VM → Firewall → Options: enable it; input policy `DROP`, output policy `ACCEPT`. Keep the defaults for MAC filter and NDP (needed for IPv6).
+3. VM → Firewall → Rules: one rule, `IN ACCEPT`, protocol `udp`, destination port `41641` (Tailscale direct connections). Rules apply to IPv4 and IPv6.
+
+Tailscale still works: its outbound connections and their replies are allowed, and it can relay through DERP if direct connections fail. The LAN can reach no TCP port on the VM.
+
+**Layer 2: UFW plus `DOCKER-USER` inside the VM** (in case the VM is ever moved, cloned or its NIC firewall disabled)
+
+```bash
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow in on tailscale0
+sudo ufw allow 41641/udp
+sudo ufw enable
+```
+
+Then append [`host/ufw-docker.rules`](host/ufw-docker.rules) to `/etc/ufw/after.rules` and `/etc/ufw/after6.rules` and reload. Forwarded traffic to published ports is then accepted only from Tailscale and Docker's own bridges. On the old homelab this file was written but never installed. Verify that the chain is populated (`sudo iptables -S DOCKER-USER`), not just that the file exists.
+
+The rules must not break Dokploy's own traffic (Traefik → containers, builds pulling images, backups uploading to S3). Test every check in [Verify privacy](#4-verify-privacy) after installation, and again after each Dokploy upgrade.
 
 ### 3. Install Dokploy
 
@@ -54,7 +78,7 @@ For reproducibility, use the selected release's installer rather than an unversi
 
 1. Access the dashboard over Tailscale and create the owner account.
 2. Configure Git access without placing credentials in this repository.
-3. Configure an off-server S3 destination and test access. Planned: a new DigitalOcean Spaces bucket in the `personal` doctl context/account, separate from Backrest's bucket. Give Dokploy a key scoped to that bucket (`readwrite`), not a full-access key, and keep a copy of it in the password manager. Create the bucket only when the Dokploy host is ready.
+3. Configure an off-server S3 destination and test access. Planned: a new DigitalOcean Spaces bucket in the `personal` doctl context/account, separate from Backrest's `develium` bucket (which is in `atl1`; using the same region keeps one endpoint). Give Dokploy a key scoped to that bucket (`readwrite`), not a full-access key, and keep a copy of it in the password manager. Create the bucket only when the Dokploy host is ready.
 4. Configure Traefik HTTPS using Cloudflare DNS challenges for private application domains. Store the scoped DNS token securely, not in Git.
 5. Validate a temporary hostname before changing existing application DNS.
 6. Configure a private HTTPS dashboard domain. Only remove direct dashboard port access after verifying the alternate route and recovery access.
@@ -64,6 +88,13 @@ Keep the wildcard DNS record pointed at the existing Caddy sidecar during migrat
 ### 4. Verify privacy
 
 From an authorized Tailscale client, verify dashboard and application HTTPS. From a non-Tailscale LAN client and an external connection, verify the dashboard, proxy, and application ports are not accessible through non-Tailscale addresses. Test IPv6 where enabled. Confirm no application publishes unnecessary host ports.
+
+Concrete checks, recording the results in the private recovery record:
+
+- From a LAN device without Tailscale, with `<lan-ip>` the VM's LAN address: `nc -vz -w3 <lan-ip> 22`, then the same for ports `80`, `443`, `3000`, `2377` and `7946`. All must time out. Repeat for the VM's IPv6 address if it has one (`ip -6 addr` in the VM).
+- Temporarily disable the Proxmox VM firewall and repeat. The same ports must still time out, which proves layer 2 on its own. Re-enable it.
+- From a Tailscale client: `https://<dokploy-domain>` and the pilot's hostname load with valid certificates.
+- Inside the VM: `sudo ss -tlpn` and `docker ps --format '{{.Names}} {{.Ports}}'`. Account for every listener.
 
 ## Per-service migration checklist
 
@@ -109,9 +140,9 @@ Retire it only after every retained service and host-level dependency has a repl
 
 ## Next decisions
 
-1. Run the read-only [host audit](INVENTORY.md#host-audit-checklist-read-only). In particular, confirm whether Backrest covers any named volumes.
+1. Act on the [audit](INVENTORY.md#live-audit-2026-11-06): named volumes and live databases are not reliably backed up today. That gap exists regardless of the migration.
 2. Confirm the fresh Actual Budget install as the pilot.
-3. Choose the Dokploy host (separate VM/host recommended for rehearsal) and the enforceable ingress boundary. Test LAN, WAN, and IPv6 exposure.
+3. Build the Proxmox machine and Dokploy VM with both firewall layers, then run the privacy checks before installing anything else.
 4. Decide where custom images will live (private registry or documented rebuild), and how secrets will be recorded outside Dokploy.
 5. Apply hub/LibreChat deployment details when the rebuild settles them.
 
