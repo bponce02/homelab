@@ -2,6 +2,10 @@
 
 Self-hosted homelab infrastructure with Docker and Tailscale-only HTTPS access.
 
+## Migration status
+
+A staged [Dokploy migration and manual bootstrap/recovery guide](dokploy/README.md) is in preparation. Executor is planned to move to its hosted service; LibreChat and the hub are being rebuilt, with final deployment details pending, and are not yet migration targets. No live cutover has occurred. The configuration and recovery instructions below remain the legacy deployment path until replacement restores are verified.
+
 `*.develium.dev` points to Caddy's Tailscale sidecar (`homelab-caddy`, `100.74.174.50`). The homelab's separate Tailscale connection (`100.126.9.60`) is used for SSH. The public blog runs separately on a Droplet through Cloudflare Tunnel.
 
 ## Tailscale and UFW
@@ -115,12 +119,14 @@ sudo docker compose -f caddy/docker-compose.yml up -d
 sudo docker compose -f dozzle/docker-compose.yml up -d
 sudo docker compose -f homepage/docker-compose.yml up -d
 sudo docker compose -f llm/docker-compose.yml up -d
-sudo docker compose -f librechat/docker-compose.yml up -d
+sudo docker compose -f librechat/docker-compose.yml -f librechat/docker-compose.fork.yml up -d
 sudo docker compose -f executor/docker-compose.yml up -d
 sudo docker compose -f stirlingpdf/docker-compose.yml up -d
 ```
 
 Connect to Tailscale to access the homelab at its `*.develium.dev` hostnames.
+
+This list is incomplete for a full rebuild. The Pi connector runs from its release directory ([Pi connectors](pi-connectors/README.md)); Personal Management needs its build token; and the live Open Terminal adapter is not fully defined in this repository. See [repository/live drift](dokploy/INVENTORY.md#repositorylive-drift).
 
 Nextcloud and Todo are retired. Their Compose definitions and Caddy routes are removed; existing data and credentials under `config/volumes/{nextcloud,todo}` and `config/env/{nextcloud,todo}` are preserved for recovery. Do not delete them or prune their storage as part of service retirement.
 

@@ -1,0 +1,25 @@
+# Dokploy pilot: Actual Budget, fresh install (no legacy data). Not deployed.
+# Domain and HTTPS are configured in Dokploy's Domains tab (Traefik); no host ports are published.
+services:
+  actual_server:
+    image: docker.io/actualbudget/actual-server:26.11.0@sha256:06cf186569cf58d93e12659ff1a517b65b5b0ebee7050a3991d4bd8a1d398da6
+    environment:
+      - ACTUAL_PORT=5006
+    volumes:
+      - actual-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'node src/scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+volumes:
+  actual-data:
+
+networks:
+  dokploy-network:
+    external: true

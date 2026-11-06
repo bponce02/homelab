@@ -1,5 +1,7 @@
 # Personal LibreChat fork
 
+The current app image is the one in `docker-compose.fork.yml` (`7a7c003f1`, see [terminal-mcp/README.md](terminal-mcp/README.md)). The release notes below record the earlier `48f12a8f2` rollout and its rollback paths.
+
 The homelab runs `local/librechat-homelab:48f12a8f2` with `docker-compose.fork.yml` and `local/pi-codex-connector:48f12a8f2` with `pi-connectors/docker-compose.yml`. Do not use the old Pi-sync image patch overlay alongside the native fork.
 
 ```sh
