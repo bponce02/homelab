@@ -1,6 +1,27 @@
 # Dokploy migration
 
-Status: preparation only. No live services, DNS records, volumes, or backups have been changed. Bootstrap is a manual procedure documented here, not an automation project.
+Status: **Dokploy is installed on the current homelab (`melissa-v2`)** as of 2026-11-07, ahead of the Proxmox machine. No application has moved yet. DNS, application volumes and backups are unchanged. Bootstrap is a manual procedure documented here, not an automation project.
+
+## Current installation
+
+| Item | Value |
+| --- | --- |
+| Host | `melissa-v2` (Ubuntu 24.04.4, Docker 29.4.3), Tailscale `100.126.9.60` |
+| Dokploy | `v0.31.0`, from the release installer `https://github.com/Dokploy/dokploy/releases/download/v0.31.0/install.sh` (sha256 `66586207a55bb95f6eb7561e765bdba6d3563afae04a1161c033f9e3e020c79b`) |
+| Install command | `sudo ADVERTISE_ADDR=100.126.9.60 DOKPLOY_VERSION=v0.31.0 sh install.sh` |
+| Components | Swarm services `dokploy` (`:3000`, host mode) and `dokploy-postgres` (`postgres:16`); container `dokploy-traefik` (`traefik:v3.6.25`, `:80`, `:443` TCP/UDP); overlay network `dokploy-network`; `/etc/dokploy` |
+| Swarm | Single node, advertise address set to the Tailscale IP. The Wi-Fi LAN address comes from DHCP and may change |
+| Firewall | [`host/ufw-docker.rules`](host/ufw-docker.rules) appended to `/etc/ufw/after.rules` and `after6.rules` (backups `*.bak-20261107T041456Z`). There is no Proxmox layer on this host, so this is the only boundary |
+| Dashboard | `http://100.126.9.60:3000`, over Tailscale only, until a private HTTPS domain is configured |
+
+Privacy checks, 2026-11-07, from a laptop on the same Wi-Fi LAN:
+
+- Over Tailscale: `:3000` answered (307 redirect to setup); `:80` and `:443` answered (Traefik 404).
+- LAN IPv4 `192.168.0.109`: ports 22, 80, 443, 3000, 2377, 7946 and 8642 all timed out, while ping succeeded (positive control).
+- LAN IPv6 link-local: ports 22, 80, 443 and 3000 all timed out, while ping succeeded. The host has no global IPv6 address.
+- The existing Caddy routes (Homepage, Actual, LibreChat, Personal Management) still return 200, and containers still reach the internet.
+
+The Proxmox host and VM steps below remain the long-term target. Moving Dokploy there later means a [replacement-server recovery](#replacement-server-recovery).
 
 - [Service and data inventory](INVENTORY.md): retained services, data, secrets, backup-coverage gaps, and repository/live drift.
 - [Pilot: Actual Budget](actual-budget/README.md): proposed first stack, a fresh install with a backup/restore test and rollback.
@@ -143,7 +164,7 @@ Retire it only after every retained service and host-level dependency has a repl
 
 1. Legacy backup gaps from the [audit](INVENTORY.md#live-audit-2026-11-06) (named volumes, live database copies) are accepted until migration: the legacy host is being replaced, so they won't be fixed in place. Each migrated service must get correct backups in Dokploy instead.
 2. Pilot: fresh Actual Budget install (confirmed). Whether the new instance needs an Actual MCP server is deferred.
-3. Build the Proxmox machine and Dokploy VM (owner, in progress). Then: apply both firewall layers, run the privacy checks, create the S3 bucket, install Dokploy.
+3. Finish Dokploy setup on the current host: owner account, S3 destination (create the Spaces bucket), Cloudflare DNS challenge for Traefik, and a private dashboard domain. The Proxmox move happens later.
 4. Decide where custom images will live (private registry or documented rebuild), and how secrets will be recorded outside Dokploy.
 5. Apply hub/LibreChat deployment details when the rebuild settles them.
 

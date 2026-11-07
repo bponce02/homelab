@@ -86,7 +86,7 @@ Consequence: a rebuild from this repository would not reproduce production. For 
 ### Network exposure
 
 - Only loopback ports are published (`127.0.0.1:8100` Personal Management, `127.0.0.1:3001` Actual MCP). No container is reachable from the LAN through Docker.
-- **The documented Docker firewall rules are not active.** `caddy/FIREWALL.md` (host only) says `ufw-docker.rules` is installed in `/etc/ufw/after*.rules`. Neither file contains `DOCKER-USER` rules, and the live `DOCKER-USER` chains are empty. Today this is harmless only because nothing publishes on a non-loopback address.
+- **The documented Docker firewall rules were not active.** `caddy/FIREWALL.md` (host only) said `ufw-docker.rules` was installed in `/etc/ufw/after*.rules`, but the live `DOCKER-USER` chains were empty. Fixed on 2026-11-07, before Dokploy was installed: [`host/ufw-docker.rules`](host/ufw-docker.rules) is now active for IPv4 and IPv6.
 - UFW: deny incoming; allow `tailscale0`, `docker0`, `br+`, UDP 41641 (IPv4 and IPv6).
 - Host listeners on all interfaces: SSH `:22` and Hermes `:8642`. Both were blocked from the LAN by UFW, not by their bind address. Hermes has since been stopped.
 - The host uses Wi-Fi (`wlp0s20f3`, `192.168.0.109`); `eno1` is down.

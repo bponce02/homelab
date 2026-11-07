@@ -4,7 +4,7 @@ Self-hosted homelab infrastructure with Docker and Tailscale-only HTTPS access.
 
 ## Migration status
 
-A staged [Dokploy migration and manual bootstrap/recovery guide](dokploy/README.md) is in preparation. Executor is planned to move to its hosted service; LibreChat and the hub are being rebuilt, with final deployment details pending, and are not yet migration targets. No live cutover has occurred. The configuration and recovery instructions below remain the legacy deployment path until replacement restores are verified.
+A staged [Dokploy migration and manual bootstrap/recovery guide](dokploy/README.md) is in preparation. Executor is planned to move to its hosted service; LibreChat and the hub are being rebuilt, with final deployment details pending, and are not yet migration targets. Dokploy `v0.31.0` is installed on the homelab (Tailscale-only dashboard), but no application has moved to it yet. The configuration and recovery instructions below remain the legacy deployment path until replacement restores are verified.
 
 `*.develium.dev` points to Caddy's Tailscale sidecar (`homelab-caddy`, `100.74.174.50`). The homelab's separate Tailscale connection (`100.126.9.60`) is used for SSH. The public blog runs separately on a Droplet through Cloudflare Tunnel.
 
