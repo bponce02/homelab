@@ -16,6 +16,7 @@ Status: **Dokploy is installed on the current homelab (`melissa-v2`)** as of 202
 | Traefik HTTPS | Resolver `letsencrypt` in `/etc/dokploy/traefik/traefik.yml` changed from `httpChallenge` to `dnsChallenge` (provider `cloudflare`, resolvers `1.1.1.1:53`/`1.0.0.1:53`). Placeholder ACME email removed. Token: `CF_DNS_API_TOKEN` in root-only `/etc/dokploy/traefik/cloudflare.env`, copied from Caddy's `/etc/homelab/caddy-dns.env` (zone `develium.dev`: DNS edit, zone read). Rotating it means updating both files |
 | Dashboard route | `/etc/dokploy/traefik/dynamic/dokploy.yml`, written by hand. Setting *Server Domain* in Dokploy's UI rewrites this file |
 | Config backups | `/etc/dokploy/backups-20261107T042631Z/` (original `traefik.yml` and `dokploy.yml`) |
+| S3 destination | Dokploy destination **DigitalOcean Spaces (atl1)**: bucket `develium-dokploy-backups` (private, `atl1`, DigitalOcean account `personal`), endpoint `https://atl1.digitaloceanspaces.com`. Spaces key `dokploy-backups` (`DO80126NW4ZXQPCAWQBA`) is limited to `readwrite` on this bucket and denied on Backrest's `develium`. Recovery copy: root-only `/etc/dokploy/s3-backups.env` on the host; also keep it in the password manager. Verified 2026-11-07: put, list and delete through Dokploy's rclone |
 
 Privacy checks, 2026-11-07, from a laptop on the same Wi-Fi LAN:
 
@@ -116,7 +117,7 @@ For reproducibility, use the selected release's installer rather than an unversi
 
 1. Access the dashboard over Tailscale and create the owner account.
 2. Configure Git access without placing credentials in this repository.
-3. Configure an off-server S3 destination and test access. Planned: a new DigitalOcean Spaces bucket in the `personal` doctl context/account, separate from Backrest's `develium` bucket (which is in `atl1`; using the same region keeps one endpoint). Give Dokploy a key scoped to that bucket (`readwrite`), not a full-access key, and keep a copy of it in the password manager. Create the bucket only when the Dokploy host is ready.
+3. Configure an off-server S3 destination and test access. Done on the current host (see [Current installation](#current-installation)): a new DigitalOcean Spaces bucket in the `personal` doctl context/account, separate from Backrest's `develium` bucket (which is in `atl1`; using the same region keeps one endpoint). Give Dokploy a key scoped to that bucket (`readwrite`), not a full-access key, and keep a copy of it in the password manager.
 4. Configure Traefik HTTPS using Cloudflare DNS challenges for private application domains. Store the scoped DNS token securely, not in Git.
 5. Validate a temporary hostname before changing existing application DNS.
 6. Configure a private HTTPS dashboard domain. Only remove direct dashboard port access after verifying the alternate route and recovery access.
@@ -180,7 +181,7 @@ Retire it only after every retained service and host-level dependency has a repl
 
 1. Legacy backup gaps from the [audit](INVENTORY.md#live-audit-2026-11-06) (named volumes, live database copies) are accepted until migration: the legacy host is being replaced, so they won't be fixed in place. Each migrated service must get correct backups in Dokploy instead.
 2. Pilot: fresh Actual Budget install (confirmed). Whether the new instance needs an Actual MCP server is deferred.
-3. Finish Dokploy setup on the current host: S3 destination (create the Spaces bucket). Done: owner account, Cloudflare DNS challenge, `dokploy.develium.dev`. The Proxmox move happens later.
+3. Dokploy setup on the current host is complete: owner account, Cloudflare DNS challenge, `dokploy.develium.dev`, S3 destination. Next: schedule the Dokploy platform backup to S3, then deploy the Actual pilot. The Proxmox move happens later.
 4. Decide where custom images will live (private registry or documented rebuild), and how secrets will be recorded outside Dokploy.
 5. Apply hub/LibreChat deployment details when the rebuild settles them.
 
