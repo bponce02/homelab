@@ -10,6 +10,8 @@ Status: **Dokploy is installed on the current homelab (`melissa-v2`)** as of 202
 - **HTTPS:** Traefik's `letsencrypt` resolver uses the Cloudflare DNS challenge (token in `/etc/dokploy/traefik/cloudflare.env`, same token as Caddy). If Dokploy recreates Traefik, make sure `CF_DNS_API_TOKEN` is still set on `dokploy-traefik`.
 - **Backups:** S3 destination `develium-dokploy-backups` (DigitalOcean Spaces `atl1`, `personal` account), with a bucket-scoped key in the password manager.
 
+- **Services on Dokploy:** [Actual Budget](actual-budget/README.md) (`actual.develium.dev`).
+
 The Proxmox VM below remains the long-term target.
 
 - [Service and data inventory](INVENTORY.md): retained services, data, secrets, backup-coverage gaps, and repository/live drift.

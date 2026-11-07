@@ -6,7 +6,7 @@ Sources: this repository at commit `5defd84`, its service READMEs, and a read-on
 
 | Service | Status in this migration | Images | Persistent data | Secrets | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| Actual Budget | **Moving to Dokploy first, with its data** ([plan](actual-budget/README.md)) | Legacy: `actual-server:latest` (floating). Dokploy: `26.11.0` pinned by digest (legacy runs 26.7.0) | Legacy bind `config/volumes/actual-data` (3.2 MB; copied, then preserved); Dokploy uses a named volume | None in Compose | `proxy` network |
+| Actual Budget | **On Dokploy since 2026-11-07, with its data** ([details](actual-budget/README.md)); legacy container stopped | Legacy: `actual-server:latest` (floating). Dokploy: `26.11.0` pinned by digest (legacy runs 26.7.0) | Legacy bind `config/volumes/actual-data` (3.2 MB; copied, then preserved); Dokploy uses a named volume | None in Compose | `proxy` network |
 | Homepage | Candidate | `homepage:latest` (floating) | Bind `config/volumes/homepage/config` (`settings.yaml` is tracked; other config files may exist only on the host) | `config/env/homepage/.env` | Docker socket |
 | Dozzle | Candidate | `dozzle:latest` (floating) | None | None | Docker socket (read access to all host containers and logs) |
 | Stirling PDF + MCP adapter | Candidate after LibreChat decisions; the adapter depends on Open Terminal's workspace and needs rethinking when Open Terminal is retired | Server pinned by digest; adapter built locally (`local/stirling-pdf-mcp`) | Binds under `config/volumes/stirlingpdf/{trainingData,extraConfigs,customFiles,logs,pipeline}`; shares external volume `llm_terminal-home` | `config/env/stirlingpdf/mcp.env` | `llm_terminal-home`; LibreChat is a client |
