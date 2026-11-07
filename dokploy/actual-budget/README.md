@@ -11,7 +11,7 @@
 | Backup | Volume backup `actual-data daily` to `develium-dokploy-backups`: daily `0 8 * * *` (UTC), keep 14, container stopped during the backup. First run 2026-11-07: archive contains `account.sqlite`, the budget `group-*.sqlite` and its blob |
 | Legacy | `actual-budget-actual_server-1` stopped, not removed; `config/volumes/actual-data` untouched. Legacy `actual_mcp` is still running but has no server. The Caddy `@actual` route is unused because the specific DNS record overrides the wildcard |
 
-Still to do: a restore test (restore the S3 archive into a new volume and open it), after which the legacy container and Caddy route can be removed with your confirmation.
+Restore tested 2026-11-07: Dokploy restored the S3 archive into a new volume, the databases passed integrity checks, and a throwaway instance booted with the existing account. The legacy container and Caddy `@actual` route can now be removed, with your confirmation.
 
 Moved from the legacy Compose stack (`actual-budget/docker-compose.yml`, Actual 26.7.0) with its existing data. Dokploy runs `26.11.0`. Actual migrates the data forward on first start, so this is a one-way upgrade. The legacy data directory is never modified.
 

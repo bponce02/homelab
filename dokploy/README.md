@@ -9,6 +9,9 @@ Status: **Dokploy is installed on the current homelab (`melissa-v2`)** as of 202
 - **Firewall:** [`host/ufw-docker.rules`](host/ufw-docker.rules) installed in UFW. LAN/IPv6 checks on 2026-11-07 showed all Dokploy, Swarm and SSH ports blocked.
 - **HTTPS:** Traefik's `letsencrypt` resolver uses the Cloudflare DNS challenge (token in `/etc/dokploy/traefik/cloudflare.env`, same token as Caddy). If Dokploy recreates Traefik, make sure `CF_DNS_API_TOKEN` is still set on `dokploy-traefik`.
 - **Backups:** S3 destination `develium-dokploy-backups` (DigitalOcean Spaces `atl1`, `personal` account), with a bucket-scoped key in the password manager.
+  - Platform backup: daily `30 7 * * *` UTC, keep 14, prefix `dokploy-platform`, encryption key included. First run 2026-11-07: a valid zip containing `database.sql`, `/etc/dokploy` (Traefik config, Compose checkouts) and `encryption.key`. **It also contains secrets** (`cloudflare.env`, `s3-backups.env`), so keep the bucket private. Not restore-tested: a platform restore replaces the whole Dokploy database and belongs on a fresh instance (the Proxmox move).
+  - Volume restore tested 2026-11-07 (Actual): Dokploy's restore wrote the S3 archive into a new volume, both SQLite files passed `integrity_check`, and a throwaway Actual booted on it with the existing account. The test volume was then removed.
+  - **Restore caveat:** if the target volume exists and no container uses it, Dokploy's restore **deletes that volume first** (`docker volume rm --force`). It only refuses when a container is attached. Always restore into a new volume name, or make sure the existing volume holds nothing you need.
 
 - **Services on Dokploy:** [Actual Budget](actual-budget/README.md) (`actual.develium.dev`).
 
