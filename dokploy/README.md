@@ -41,7 +41,6 @@ If Dokploy ever recreates Traefik (Web Server → Traefik actions, upgrades), ch
 The Proxmox host and VM steps below remain the long-term target. Moving Dokploy there later means a [replacement-server recovery](#replacement-server-recovery).
 
 - [Service and data inventory](INVENTORY.md): retained services, data, secrets, backup-coverage gaps, and repository/live drift.
-- [Platform](platform/README.md): Dokploy's own installation: pinned installer, Traefik config, dashboard route, and rebuild steps.
 - [Pilot: Actual Budget](actual-budget/README.md): proposed first stack, a fresh install with a backup/restore test and rollback.
 
 Dokploy behavior below was checked against its documentation on 2026-11-06. Re-check against the installed release.
