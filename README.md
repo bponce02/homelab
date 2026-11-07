@@ -18,7 +18,7 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | Service | Runs on | URL | Data | Backup |
 | --- | --- | --- | --- | --- |
 | Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
-| Personal Management | Moving to Dokploy (`personal-management`) | `per.develium.dev` | Volume `<appName>_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
+| Personal Management | Dokploy (`personal-management`) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
 | Homepage, Dozzle, Stirling PDF | Legacy | `homepage.`, `dozzle.`, `pdf.develium.dev` | Folders under `config/volumes/` | Backrest |
 | LibreChat (with MongoDB, history MCP, Ollama, Camofox) | Legacy; being rebuilt | `librechat.develium.dev` | `config/volumes/librechat/`, `llm/ollama` | Backrest (Mongo copied live) |
 | Executor | Legacy; moving to the hosted version | `executor.develium.dev` | Volume `executor_executor-user-data` | None (named volume) |
@@ -107,6 +107,7 @@ Don't delete or prune this data without explicit approval.
 - **Open WebUI:** stopped 2026-11-07. `config/volumes/llm/openwebui/`.
 - **Hermes:** stopped 2026-11-06. `~/.hermes` and its systemd user units.
 - **Legacy Actual:** containers removed 2026-11-07. `config/volumes/actual-data`, `config/volumes/actual-mcp-v267`.
+- **Legacy Personal Management:** container removed 2026-11-07. `config/volumes/personal-management/data`, `config/env/personal-management/.env`, unused volume `personal-management_app-data`.
 - **CLIProxyAPI, Nextcloud, Todo, Komodo, Authentik, n8n, Paperless, Vikunja, Wetty:** directories under `config/` and Komodo's `komodo_*` volumes.
 
 Their Compose files and docs remain in Git history.

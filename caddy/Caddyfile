@@ -34,10 +34,6 @@
         reverse_proxy executor:4788
     }
 
-    @per host per.{$MY_DOMAIN}
-    handle @per {
-        reverse_proxy personal-management:8000
-    }
 
     handle {
         respond "Unknown homelab service" 404

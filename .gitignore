@@ -14,3 +14,4 @@ config/volumes/cliproxyapi/
 config/env/pi-connectors/
 config/volumes/pi-connectors/
 personal-management/.env
+node_modules/
