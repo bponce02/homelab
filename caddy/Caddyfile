@@ -4,24 +4,9 @@
         resolvers 1.1.1.1 1.0.0.1
     }
 
-    @actual host actual.{$MY_DOMAIN}
-    handle @actual {
-        reverse_proxy actual_server:5006
-    }
-
-    @dozzle host dozzle.{$MY_DOMAIN}
-    handle @dozzle {
-        reverse_proxy dozzle:8080
-    }
-
     @pdf host pdf.{$MY_DOMAIN}
     handle @pdf {
-        handle /agent-files/* {
-            reverse_proxy stirling-pdf-mcp:8000
-        }
-        handle {
-            reverse_proxy stirling-pdf:8080
-        }
+        reverse_proxy stirling-pdf:8080
     }
 
     @backrest host backrest.{$MY_DOMAIN}
@@ -29,25 +14,11 @@
         reverse_proxy backrest:9898
     }
 
-    @homepage host homepage.{$MY_DOMAIN}
-    handle @homepage {
-        reverse_proxy homepage:3000
-    }
-
     @librechat host librechat.{$MY_DOMAIN}
     handle @librechat {
         reverse_proxy librechat:3080
     }
 
-    @executor host executor.{$MY_DOMAIN}
-    handle @executor {
-        reverse_proxy executor:4788
-    }
-
-    @per host per.{$MY_DOMAIN}
-    handle @per {
-        reverse_proxy personal-management:8000
-    }
 
     handle {
         respond "Unknown homelab service" 404

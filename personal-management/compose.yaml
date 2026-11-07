@@ -1,0 +1,47 @@
+# Personal Management on Dokploy. Built from the private repository at a pinned commit.
+# Values in ${...} come from the service's Environment tab in Dokploy.
+services:
+  web:
+    build:
+      context: https://github.com/bponce02/personal-management.git#7af02cc9661773c1e9ac1b4465faee10f6fc7071
+      secrets:
+        - GIT_AUTH_TOKEN
+    image: personal-management:7af02cc
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+      ALLOWED_HOSTS: per.develium.dev
+      CSRF_TRUSTED_ORIGINS: https://per.develium.dev
+      DEBUG: "False"
+      DJANGO_VITE_DEV_MODE: "False"
+      DB_PATH: /app/data/db.sqlite3
+      MEDIA_ROOT: /app/data/media
+      GUNICORN_WORKERS: "2"
+      GUNICORN_THREADS: "4"
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_CLAIMS_EMAIL: ${VAPID_CLAIMS_EMAIL}
+      PUSH_NOTIFY_TOKEN: ${PUSH_NOTIFY_TOKEN}
+    volumes:
+      - app-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - dokploy-network
+
+secrets:
+  # GitHub token with read access to the private repository; BuildKit uses this
+  # secret id to authenticate the Git build context.
+  GIT_AUTH_TOKEN:
+    environment: GIT_AUTH_TOKEN
+
+volumes:
+  app-data:
+
+networks:
+  dokploy-network:
+    external: true

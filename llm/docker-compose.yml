@@ -1,16 +1,4 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_NUM_GPU=0             # set 0 for CPU-only, omit if you have a GPU
-      - OLLAMA_NUM_THREADS=${THREADS:-2}
-    volumes:
-      - ./ollama:/root/.ollama
-    networks:
-      - proxy
-
   camofox:
     image: ghcr.io/redf0x1/camofox-browser:2.4.7
     container_name: camofox
@@ -62,30 +50,6 @@ services:
       - no-new-privileges:true
     networks:
       - browser
-
-  open-terminal:
-    build: ./open-terminal
-    image: local/open-terminal:0.14.0-mcp-4.0.11
-    container_name: open-terminal
-    restart: unless-stopped
-    env_file:
-      - ../config/env/llm/open-terminal.env
-    volumes:
-      - terminal-home:/home/user
-    healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; assert httpx.get('http://127.0.0.1:8000/mcp').status_code == 401"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - terminal
-    cpus: 2
-    mem_limit: 2g
-    pids_limit: 256
-
-volumes:
-  terminal-home:
 
 networks:
   proxy:

@@ -1,0 +1,13 @@
+ARG BASE_IMAGE=local/librechat-homelab:361f0ecdc
+FROM ${BASE_IMAGE}
+
+RUN rm -rf /app/packages/api/dist
+COPY --chown=node:node packages/api/dist/ /app/packages/api/dist/
+COPY --chown=node:node packages/api/src/index.ts /app/packages/api/src/index.ts
+COPY --chown=node:node packages/api/src/mcp/parsers.ts /app/packages/api/src/mcp/parsers.ts
+COPY --chown=node:node api/server/services/MCP.js /app/api/server/services/MCP.js
+COPY --chown=node:node api/app/clients/tools/util/handleTools.js /app/api/app/clients/tools/util/handleTools.js
+
+ARG BUILD_COMMIT
+ENV BUILD_COMMIT=${BUILD_COMMIT}
+ENV BUILD_BRANCH=feat/open-terminal-image-content

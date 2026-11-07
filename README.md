@@ -1,127 +1,131 @@
-# Homelab Setup
+# Homelab
 
-Self-hosted homelab infrastructure with Docker and Tailscale-only HTTPS access.
+Self-hosted services on one Docker host (`melissa-v2`). Services are defined as Compose files in this repository, deployed with [Dokploy](https://dokploy.com), store data in named volumes backed up to S3, and are reachable only over Tailscale. The public blog runs separately on a Droplet and isn't covered here.
 
-`*.develium.dev` points to Caddy's Tailscale sidecar (`homelab-caddy`, `100.74.174.50`). The homelab's separate Tailscale connection (`100.126.9.60`) is used for SSH. The public blog runs separately on a Droplet through Cloudflare Tunnel.
+The migration to Dokploy is in progress: some services still run as hand-started Compose stacks behind Caddy (see [Legacy stack](#legacy-stack)).
 
-## Tailscale and UFW
+## Layout
 
-Caddy shares the Tailscale sidecar's network and reaches applications over Docker's `proxy` network. Neither Caddy nor the web applications publish ports on the host. Local integrations may bind to `127.0.0.1` only.
+| Path | Contents |
+| --- | --- |
+| `<service>/compose.yaml` | A service deployed by Dokploy (`actual-budget`, `personal-management`) |
+| `host/ufw-docker.rules` | Firewall rules that keep Docker-published ports Tailscale-only |
+| `caddy/`, `backrest/`, `stirlingpdf/`, `librechat/`, `llm/` | Legacy Compose stacks, removed as each service moves to Dokploy |
+| `config/` (server only, not in Git) | Legacy env files and data folders referenced by those stacks |
 
-Tailscale controls access to Caddy; there is no additional proxy login. Applications retain their own authentication where configured. Anyone allowed to reach Caddy through Tailscale can reach all its application routes.
+## Services
 
-Both hosts use ordinary UFW rules for host services: allow Tailscale traffic and UDP 41641, deny other incoming connections. No custom Docker firewall rules are needed. Do not add all-interface Docker port mappings: they bypass ordinary UFW rules.
+| Service | Runs on | URL | Data | Backup |
+| --- | --- | --- | --- | --- |
+| Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
+| Personal Management | Dokploy (`personal-management`) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
+| Stirling PDF | Legacy | `pdf.develium.dev` | `config/volumes/stirlingpdf/` | Backrest |
+| LibreChat (with MongoDB, history MCP, Camofox) | Legacy; being rebuilt | `librechat.develium.dev` | `config/volumes/librechat/` | Backrest (Mongo copied live) |
+| Backrest, Caddy | Legacy infrastructure | `backrest.develium.dev` | `config/volumes/{backrest,caddy}`, volume `caddy_tailscale-state` | — |
 
-For a new sidecar, start it and open the authorization link in its logs:
+## Network and access
 
-```bash
-sudo docker compose -f caddy/docker-compose.yml up -d tailscale
-sudo docker compose -f caddy/docker-compose.yml logs tailscale
-```
+- Clients reach services only over Tailscale. Each Dokploy service has its own DNS-only Cloudflare A record pointing to the host's Tailscale IP, `100.126.9.60`. The `*.develium.dev` wildcard still points to Caddy's Tailscale sidecar (`100.74.174.50`) for legacy services.
+- Dokploy's Traefik serves HTTPS with Let's Encrypt certificates from the Cloudflare DNS challenge.
+- UFW denies incoming traffic except on `tailscale0` and UDP 41641. `host/ufw-docker.rules` extends that to Docker-published ports. Ordinary UFW rules don't cover those, and Dokploy publishes 80, 443 and 3000. A LAN check on 2026-11-07 found every Dokploy, Swarm and SSH port blocked over IPv4 and IPv6.
+- Dashboard: `https://dokploy.develium.dev`, with `http://100.126.9.60:3000` as a fallback.
 
-The `tailscale-state` volume preserves its identity. Do not delete it during upgrades. After authorization, start Caddy with `docker compose up -d` in `caddy/` and point the DNS-only wildcard A record to the sidecar's Tailscale IP. Check the device's key-expiry setting in the Tailscale admin console for unattended operation.
+## Bootstrap a host
 
-## AI Services
+Manual steps, in order. A Proxmox VM is the planned long-term host: use a full VM (not LXC), and add the Proxmox VM firewall (input `DROP`, allow UDP 41641) as an outer layer.
 
-LibreChat runs at https://librechat.develium.dev with Ollama's local models, OpenRouter's hosted models, and Open Terminal/Camofox tools. Open WebUI and its `llm.develium.dev` route are removed from the repository configuration; its saved data is retained. See [chat service configuration and retirement steps](llm/README.md).
+1. **OS and Tailscale.** Install Ubuntu Server 24.04, then Tailscale. Authorize the host and disable its key expiry. Confirm SSH works over its Tailscale IP.
+2. **Firewall, before Dokploy.**
+   ```bash
+   sudo ufw default deny incoming && sudo ufw default allow outgoing
+   sudo ufw allow in on tailscale0 && sudo ufw allow 41641/udp && sudo ufw enable
+   ```
+   Append `host/ufw-docker.rules` to `/etc/ufw/after.rules` and `/etc/ufw/after6.rules`, run `sudo ufw reload`, and check that `sudo iptables -S DOCKER-USER` lists the rules.
+3. **Dokploy `v0.31.0`.** Use the release installer (sha256 `66586207a55bb95f6eb7561e765bdba6d3563afae04a1161c033f9e3e020c79b`):
+   ```bash
+   curl -fsSLo install.sh https://github.com/Dokploy/dokploy/releases/download/v0.31.0/install.sh
+   sudo ADVERTISE_ADDR=<tailscale-ip> DOKPLOY_VERSION=v0.31.0 sh install.sh
+   ```
+4. **HTTPS via Cloudflare DNS.** In `/etc/dokploy/traefik/traefik.yml`, replace the `letsencrypt` resolver's `email` and `httpChallenge` with `dnsChallenge` (`provider: cloudflare`, resolvers `1.1.1.1:53`, `1.0.0.1:53`). Put `CF_DNS_API_TOKEN=<token>` in `/etc/dokploy/traefik/cloudflare.env` (mode 600). The token needs Zone Read and DNS Edit on `develium.dev`. Then recreate Traefik with the token:
+   ```bash
+   sudo docker rm -f dokploy-traefik
+   sudo docker run -d --name dokploy-traefik --restart always --network dokploy-network \
+     --env-file /etc/dokploy/traefik/cloudflare.env \
+     -v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
+     -v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
+     -v /var/run/docker.sock:/var/run/docker.sock:ro \
+     -p 80:80/tcp -p 443:443/tcp -p 443:443/udp traefik:v3.6.25
+   ```
+   If Dokploy ever recreates Traefik (for example on an upgrade), check that the token is still set: `docker inspect dokploy-traefik --format '{{.Config.Env}}' | grep -c CF_DNS`.
+5. **Dashboard domain.** Route `dokploy.develium.dev` to `http://dokploy:3000` in `/etc/dokploy/traefik/dynamic/dokploy.yml` (an HTTPS router with `certResolver: letsencrypt`, plus an HTTP router using the `redirect-to-https` middleware). Add its DNS-only A record.
+6. **Owner account and S3.** Create the owner account. Add the S3 destination: DigitalOcean Spaces bucket `develium-dokploy-backups`, region `atl1`, endpoint `https://atl1.digitaloceanspaces.com`. Its key (in the password manager) is limited to that bucket.
+7. **Platform backup.** Schedule Dokploy's web-server backup daily to that destination (currently `30 7 * * *` UTC, keep 14, encryption key included). To rebuild an existing setup on a new host, restore the latest platform backup onto the fresh install instead of reconfiguring by hand.
 
-Two optional [Pi connectors](pi-connectors/README.md) provide Codex subscription inference through Pi's library and owner-only access to allowlisted Herdr/Pi sessions on the laptop. Codex Subscription is authenticated and enabled in LibreChat, with live streaming, function-call round-trip, and browser chat checks passing. The single-user LibreChat instance supplies its connector key server-side, with new account registration disabled. Its Codex dropdown contains only GPT-6.1 Sol, GPT-6 Astra, and GPT-6 Luna. The Local Pi laptop gateway and [LibreChat endpoint](librechat/pi-endpoints.example.yaml) are configured with automatic authentication; the allowlisted homelab Pi conversation needs `/reload` before it becomes available. CLIProxyAPI is retired. The Codex Subscription connector is independent and remains running; its OAuth storage is separate from CLIProxyAPI.
+## Add a service to Dokploy
 
-CLIProxyAPI's container, Compose definition and Caddy route have been removed. Its private configuration, OAuth credentials and saved data are retained for recovery. See [retirement notes](cliproxyapi/README.md).
+1. Write `<service>/compose.yaml`:
+   - pin the image (tag and digest) or the build commit;
+   - keep mutable data in named volumes only;
+   - publish no host ports;
+   - join the external `dokploy-network`;
+   - read secrets as `${VAR}` from Dokploy's Environment tab.
 
-Executor's self-hosted integration catalog runs at https://executor.develium.dev (Tailscale only). Create the owner account through its first-run signup screen; no admin is bootstrapped. LibreChat's [Executor MCP connection](executor/README.md) uses OAuth at `https://executor.develium.dev/mcp`; authorize it once from MCP Servers with the existing owner account. Configure integrations once in Executor; external providers may still require their own credentials or OAuth consent. No cloud integrations are migrated automatically.
+   Repository-relative bind mounts don't survive Dokploy redeploys, and volume backups skip bind mounts.
+2. Create the Compose service in Dokploy:
+   - Git URL `https://github.com/bponce02/homelab.git`, the deployment branch, and `./<service>/compose.yaml`.
+   - Add the domain (service, port, HTTPS, resolver `letsencrypt`).
 
-- Compose: `executor/docker-compose.yml`, image pinned to version 1.6.10 and its digest; no published host ports or Docker socket.
-- No bootstrap credentials are loaded. Retired credentials and the previous `executor_executor-data` volume are preserved but inactive; rollback configuration is in `/root/executor-manual-owner-backup/` on Homelab.
-- Back up `executor_executor-user-data`, including the database and both encryption/session key files. Stop Executor before a file-level backup, or use a consistent volume snapshot.
-- Private-network access from sandboxed code remains disabled. Add network access deliberately when configuring homelab integrations. This integration service does not replace Open Terminal or provide an autonomous background agent.
+   The Dokploy CLI (`dokploy compose create/update`, `dokploy domain create`) can do the same.
+3. For existing data: stop the old container, `docker volume create <appName>_<volume>`, copy the data in (`cp -a`), then deploy. Compose adopts the existing volume.
+4. Check the service over the Tailscale IP (`curl --resolve <host>:443:100.126.9.60 …`), then add its DNS-only A record. The specific record overrides the Caddy wildcard.
+5. Add a volume backup (stop the container during the backup, keep 14). Run it once, then remove the old container and its Caddy route.
 
-LibreChat also includes [read-only chat-history MCP tools](librechat/history-mcp/README.md). Enable `chat-history` for a chat/agent to search earlier conversations and retrieve selected messages, scoped to the logged-in user. It does not copy all history into every prompt.
+## Backups
 
-## Initial Setup
+Dokploy runs these backups automatically and uploads them to the private DigitalOcean Spaces bucket `develium-dokploy-backups` (region `atl1`, DigitalOcean account `personal`).
 
-### 1. Clone Repository
+| What | Schedule (UTC) | Keeps | Bucket folder | See it in Dokploy |
+| --- | --- | --- | --- | --- |
+| Actual Budget data (volume `actual-budget-kbggec_actual-data`) | Daily 08:00 | 14 | `actual-budget-kbggec_actual_server/actual-budget/` | Homelab → actual-budget → **Volume Backups** |
+| Personal Management data (volume `personal-management-ppbblm_app-data`) | Daily 08:15 | 14 | `personal-management-ppbblm_web/personal-management/` | Homelab → personal-management → **Volume Backups** |
+| Dokploy itself (its database including every service's environment variables, `/etc/dokploy`, encryption key) | Daily 07:30 | 14 | `backup-bypass-auxiliary-matrix-xg1i1q/dokploy-platform/` | **Settings → Web Server**, backups section |
+| Legacy services (LibreChat, Stirling PDF) | Hourly | 24 hourly, 30 daily, 12 monthly | Spaces bucket `develium` | Backrest UI, `https://backrest.develium.dev` |
 
-```bash
-git clone https://github.com/bponce02/homelab.git
-cd homelab
-```
+- Volume backups stop the app for a few seconds so its SQLite files are consistent, then start it again.
+- Each schedule was run once by hand on 2026-11-07, and the archives are in the bucket. Actual's backup was also restored into a test volume: the databases passed integrity checks and the app booted with its data.
+- The Dokploy backup contains secrets (environment variables, the Cloudflare token, the S3 key), so the bucket must stay private.
+- Backrest doesn't cover Docker named volumes, and it copies databases while they run. It stays only until LibreChat and Stirling PDF move to Dokploy.
 
-### 2. Install Docker
+### Restore
 
-Reference: [Docker Installation Guide](https://docs.docker.com/engine/install/ubuntu/)
+- **One service's data:** in the service's **Volume Backups** tab, choose **Restore**, pick a backup file, and enter a **new** volume name. Point the service at that volume (or copy the data into place) and redeploy. Never restore into an existing volume name: if nothing is using that volume, Dokploy deletes it first.
+- **The whole server** (for example, moving to the Proxmox VM): follow [Bootstrap a host](#bootstrap-a-host) steps 1–3 on the new machine, restore the latest Dokploy backup there, then restore each service's volume and redeploy.
+- **Keep in the password manager** (needed when Dokploy itself is gone): the S3 key, the Cloudflare token, the Dokploy login, and Tailscale admin access.
 
-```bash
-# Add Docker's official GPG key
-sudo apt update
-sudo apt install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+## Legacy stack
 
-# Add the repository to Apt sources
-sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-Components: stable
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-
-# Install Docker
-sudo apt update
-sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
-
-### 3. Setup Backrest
-
-1. Paste Backrest config into `config/volumes/backrest/config/config.json` (stored in Bitwarden)
-
-2. Create Docker network:
-```bash
-sudo docker network create proxy
-```
-
-3. Start Backrest:
-```bash
-sudo docker compose -f backrest/docker-compose.yml up -d
-```
-
-4. With Caddy running, connect to Tailscale and open Backrest: `https://backrest.develium.dev/`
-
-## Restore from Backup
-
-### 1. Index and Restore Snapshot
-
-1. In Backrest UI, index snapshots from DigitalOcean
-2. Select snapshot to restore
-3. Set restore path to: `/userdata/restore`
-4. Start restore operation
-
-### 2. Copy Restored Files
-
-```bash
-# Copy files from restore location to homelab directory
-sudo cp -r /home/melissa/homelab/restore/* /home/melissa/homelab/
-sudo rm -rf /home/melissa/homelab/restore
-```
-
-## Start All Services
+Until each service moves, the server runs the old stacks from its own checkout, `/home/melissa/homelab`. That checkout has diverged from this repository: its files were edited in place. Treat it as the source of truth for those services:
 
 ```bash
-# Start all containers
-sudo docker compose -f actual-budget/docker-compose.yml up -d
-sudo docker compose -f caddy/docker-compose.yml up -d
-sudo docker compose -f dozzle/docker-compose.yml up -d
-sudo docker compose -f homepage/docker-compose.yml up -d
-sudo docker compose -f llm/docker-compose.yml up -d
-sudo docker compose -f librechat/docker-compose.yml up -d
-sudo docker compose -f executor/docker-compose.yml up -d
-sudo docker compose -f stirlingpdf/docker-compose.yml up -d
+cd /home/melissa/homelab && sudo docker compose -f <service>/docker-compose.yml up -d
 ```
 
-Connect to Tailscale to access the homelab at its `*.develium.dev` hostnames.
+Caddy (`caddy/`) runs inside a Tailscale sidecar container and serves the wildcard routes (`pdf`, `backrest`, `librechat`). Backrest (`backrest/`) has its configuration in Bitwarden.
 
-Nextcloud and Todo are retired. Their Compose definitions and Caddy routes are removed; existing data and credentials under `config/volumes/{nextcloud,todo}` and `config/env/{nextcloud,todo}` are preserved for recovery. Do not delete them or prune their storage as part of service retirement.
+## Retired (data preserved)
 
-Stirling PDF includes a bearer-authenticated MCP adapter for agent PDF tools. See [setup, shared workspace, and download links](stirlingpdf/README.md) before starting the updated Stirling PDF and LibreChat stacks.
+Don't delete or prune this data without explicit approval.
+
+- **Open Terminal, `open-terminal-mcp`, `agent-desktop`:** containers removed 2026-11-07. Volume `llm_terminal-home`, `config/env/llm/open-terminal.env`. LibreChat's terminal tools no longer work.
+- **Pi Codex connector and laptop Pi gateway:** container removed and gateway disabled 2026-11-07. `config/{env,volumes}/pi-connectors/`, the laptop's `pi-session-gateway` user service (disabled), and `/home/melissa/homelab-releases/`.
+- **Open WebUI:** container removed 2026-11-07. `config/volumes/llm/openwebui/`.
+- **Hermes:** stopped 2026-11-06. `~/.hermes` and its systemd user units.
+- **Legacy Actual:** containers removed 2026-11-07. `config/volumes/actual-data`, `config/volumes/actual-mcp-v267`.
+- **Legacy Personal Management:** container removed 2026-11-07. `config/volumes/personal-management/data`, `config/env/personal-management/.env`, unused volume `personal-management_app-data`.
+- **Executor:** moved to the hosted version; container removed 2026-11-07. Volumes `executor_executor-user-data`, `executor_executor-data`, `executor_executor-local-data`, and `/root/executor-manual-owner-backup/`.
+- **Ollama:** removed 2026-11-07. Models in `llm/ollama` (31 GB, re-downloadable). LibreChat's Ollama endpoint no longer works.
+- **Homepage, Dozzle, static site:** removed 2026-11-07. `config/volumes/homepage/`.
+- **Blog on this host:** container removed 2026-11-07 (the blog runs on the Droplet). `config/volumes/blog/`.
+- **CLIProxyAPI, Nextcloud, Todo, Komodo, Authentik, n8n, Paperless, Vikunja, Wetty:** directories under `config/` and Komodo's `komodo_*` volumes.
+
+Their Compose files and docs remain in Git history.
