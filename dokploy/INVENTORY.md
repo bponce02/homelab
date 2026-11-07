@@ -6,7 +6,7 @@ Sources: this repository at commit `5defd84`, its service READMEs, and a read-on
 
 | Service | Status in this migration | Images | Persistent data | Secrets | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| Actual Budget | **Proposed pilot: fresh install** ([plan](actual-budget/README.md)); legacy instance is not migrated | Legacy: `actual-server:latest` (floating). Pilot: `26.11.0` pinned by digest | Legacy bind `config/volumes/actual-data` (preserve); pilot uses a named volume | None in Compose | `proxy` network |
+| Actual Budget | **Moving to Dokploy first, with its data** ([plan](actual-budget/README.md)) | Legacy: `actual-server:latest` (floating). Dokploy: `26.11.0` pinned by digest (legacy runs 26.7.0) | Legacy bind `config/volumes/actual-data` (3.2 MB; copied, then preserved); Dokploy uses a named volume | None in Compose | `proxy` network |
 | Homepage | Candidate | `homepage:latest` (floating) | Bind `config/volumes/homepage/config` (`settings.yaml` is tracked; other config files may exist only on the host) | `config/env/homepage/.env` | Docker socket |
 | Dozzle | Candidate | `dozzle:latest` (floating) | None | None | Docker socket (read access to all host containers and logs) |
 | Stirling PDF + MCP adapter | Candidate after LibreChat decisions; the adapter depends on Open Terminal's workspace and needs rethinking when Open Terminal is retired | Server pinned by digest; adapter built locally (`local/stirling-pdf-mcp`) | Binds under `config/volumes/stirlingpdf/{trainingData,extraConfigs,customFiles,logs,pipeline}`; shares external volume `llm_terminal-home` | `config/env/stirlingpdf/mcp.env` | `llm_terminal-home`; LibreChat is a client |
@@ -36,7 +36,7 @@ Do not delete, prune, or migrate it unless deletion is approved for that specifi
 - CLIProxyAPI: `config/{env,volumes}/cliproxyapi/` and its retained local image.
 - Authentik, n8n, Paperless, Vikunja, Wetty, Komodo: placeholder directories under `config/{env,volumes}/`; may hold data on the host.
 - Planned retirements, once the LibreChat rebuild no longer uses them: Open Terminal workspace volume `llm_terminal-home`, `config/env/llm/open-terminal.env`, Pi connector OAuth/keys under `config/{env,volumes}/pi-connectors/`, `/home/melissa/homelab-releases/pi-connectors*`, and the laptop gateway state.
-- Legacy Actual Budget data in `config/volumes/actual-data`, after the fresh Dokploy instance replaces it.
+- Legacy Actual Budget data in `config/volumes/actual-data`, after the Dokploy instance replaces it.
 - Hermes: `~/.hermes`, its systemd user units, `hermes/usage-snapshot.py` output, and `/home/melissa/personal-management-mobile-documents-editor/.hermes/screenshots`.
 - Executor after the hosted move: `executor_executor-user-data`, `executor_executor-data`, and `/root/executor-manual-owner-backup/`.
 
@@ -67,7 +67,7 @@ Consequence: a rebuild from this repository would not reproduce production. For 
 - `agent-desktop` (`local/librechat-agent-desktop:0.3.3`, LibreChat project) uses the `llm_terminal-home` volume. Retire it with Open Terminal.
 - `open-terminal-mcp`: defined in the host's `librechat/docker-compose.yml`.
 - `open-webui` `v0.11.4`: still running with `WEBUI_AUTH=false`. Its repository retirement was never deployed.
-- `actual-budget-actual_mcp-1`: Actual MCP on `127.0.0.1:3001`, data in `config/volumes/actual-mcp-v267`. The fresh Actual pilot does not include it. Decide whether the new instance needs an MCP server.
+- `actual-budget-actual_mcp-1`: Actual MCP on `127.0.0.1:3001`, data in `config/volumes/actual-mcp-v267`. The Dokploy Actual stack does not include it. Decide whether the new instance needs an MCP server.
 - Stopped: `blog` (now on the Droplet), Personal Management test containers, and a buildx builder.
 - Not running: `stirling-pdf-mcp`, Nextcloud, Todo. The live Caddyfile still routes `todo`, `nextcloud`, and `llm` (Open WebUI).
 

@@ -4,44 +4,16 @@ Status: **Dokploy is installed on the current homelab (`melissa-v2`)** as of 202
 
 ## Current installation
 
-| Item | Value |
-| --- | --- |
-| Host | `melissa-v2` (Ubuntu 24.04.4, Docker 29.4.3), Tailscale `100.126.9.60` |
-| Dokploy | `v0.31.0`, from the release installer `https://github.com/Dokploy/dokploy/releases/download/v0.31.0/install.sh` (sha256 `66586207a55bb95f6eb7561e765bdba6d3563afae04a1161c033f9e3e020c79b`) |
-| Install command | `sudo ADVERTISE_ADDR=100.126.9.60 DOKPLOY_VERSION=v0.31.0 sh install.sh` |
-| Components | Swarm services `dokploy` (`:3000`, host mode) and `dokploy-postgres` (`postgres:16`); container `dokploy-traefik` (`traefik:v3.6.25`, `:80`, `:443` TCP/UDP); overlay network `dokploy-network`; `/etc/dokploy` |
-| Swarm | Single node, advertise address set to the Tailscale IP. The Wi-Fi LAN address comes from DHCP and may change |
-| Firewall | [`host/ufw-docker.rules`](host/ufw-docker.rules) appended to `/etc/ufw/after.rules` and `after6.rules` (backups `*.bak-20261107T041456Z`). There is no Proxmox layer on this host, so this is the only boundary |
-| Dashboard | **`https://dokploy.develium.dev`** (Let's Encrypt via Cloudflare DNS challenge; HTTP redirects to HTTPS). DNS-only A record → `100.126.9.60`; the wildcard still points to Caddy. `http://100.126.9.60:3000` stays as the recovery path |
-| Traefik HTTPS | Resolver `letsencrypt` in `/etc/dokploy/traefik/traefik.yml` changed from `httpChallenge` to `dnsChallenge` (provider `cloudflare`, resolvers `1.1.1.1:53`/`1.0.0.1:53`). Placeholder ACME email removed. Token: `CF_DNS_API_TOKEN` in root-only `/etc/dokploy/traefik/cloudflare.env`, copied from Caddy's `/etc/homelab/caddy-dns.env` (zone `develium.dev`: DNS edit, zone read). Rotating it means updating both files |
-| Dashboard route | `/etc/dokploy/traefik/dynamic/dokploy.yml`, written by hand. Setting *Server Domain* in Dokploy's UI rewrites this file |
-| Config backups | `/etc/dokploy/backups-20261107T042631Z/` (original `traefik.yml` and `dokploy.yml`) |
-| S3 destination | Dokploy destination **DigitalOcean Spaces (atl1)**: bucket `develium-dokploy-backups` (private, `atl1`, DigitalOcean account `personal`), endpoint `https://atl1.digitaloceanspaces.com`. Spaces key `dokploy-backups` (`DO80126NW4ZXQPCAWQBA`) is limited to `readwrite` on this bucket and denied on Backrest's `develium`. Recovery copy: root-only `/etc/dokploy/s3-backups.env` on the host; also keep it in the password manager. Verified 2026-11-07: put, list and delete through Dokploy's rclone |
+- **Dokploy `v0.31.0`** on `melissa-v2` (Tailscale `100.126.9.60`), from the [release installer](https://github.com/Dokploy/dokploy/releases/download/v0.31.0/install.sh): `sudo ADVERTISE_ADDR=100.126.9.60 DOKPLOY_VERSION=v0.31.0 sh install.sh`.
+- **Dashboard:** `https://dokploy.develium.dev` (DNS-only record → `100.126.9.60`); `http://100.126.9.60:3000` as fallback. Tailscale only.
+- **Firewall:** [`host/ufw-docker.rules`](host/ufw-docker.rules) installed in UFW. LAN/IPv6 checks on 2026-11-07 showed all Dokploy, Swarm and SSH ports blocked.
+- **HTTPS:** Traefik's `letsencrypt` resolver uses the Cloudflare DNS challenge (token in `/etc/dokploy/traefik/cloudflare.env`, same token as Caddy). If Dokploy recreates Traefik, make sure `CF_DNS_API_TOKEN` is still set on `dokploy-traefik`.
+- **Backups:** S3 destination `develium-dokploy-backups` (DigitalOcean Spaces `atl1`, `personal` account), with a bucket-scoped key in the password manager.
 
-Privacy checks, 2026-11-07, from a laptop on the same Wi-Fi LAN:
-
-- Over Tailscale: `:3000` answered (307 redirect to setup); `:80` and `:443` answered (Traefik 404).
-- LAN IPv4 `192.168.0.109`: ports 22, 80, 443, 3000, 2377, 7946 and 8642 all timed out, while ping succeeded (positive control).
-- LAN IPv6 link-local: ports 22, 80, 443 and 3000 all timed out, while ping succeeded. The host has no global IPv6 address.
-- The existing Caddy routes (Homepage, Actual, LibreChat, Personal Management) still return 200, and containers still reach the internet.
-
-Traefik was recreated with the installer's settings plus the token file:
-
-```bash
-sudo docker run -d --name dokploy-traefik --restart always --network dokploy-network \
-  --env-file /etc/dokploy/traefik/cloudflare.env \
-  -v /etc/dokploy/traefik/traefik.yml:/etc/traefik/traefik.yml \
-  -v /etc/dokploy/traefik/dynamic:/etc/dokploy/traefik/dynamic \
-  -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  -p 80:80/tcp -p 443:443/tcp -p 443:443/udp traefik:v3.6.25
-```
-
-If Dokploy ever recreates Traefik (Web Server → Traefik actions, upgrades), check that `CF_DNS_API_TOKEN` is still set: `docker inspect dokploy-traefik --format '{{.Config.Env}}' | grep -c CF_DNS`. If it isn't, add it under Traefik's environment settings in the UI. Application domains in Dokploy should use the `letsencrypt` certificate resolver, which now issues certificates through DNS.
-
-The Proxmox host and VM steps below remain the long-term target. Moving Dokploy there later means a [replacement-server recovery](#replacement-server-recovery).
+The Proxmox VM below remains the long-term target.
 
 - [Service and data inventory](INVENTORY.md): retained services, data, secrets, backup-coverage gaps, and repository/live drift.
-- [Pilot: Actual Budget](actual-budget/README.md): proposed first stack, a fresh install with a backup/restore test and rollback.
+- [Actual Budget](actual-budget/README.md): first service moved to Dokploy, with its existing data.
 
 Dokploy behavior below was checked against its documentation on 2026-11-06. Re-check against the installed release.
 
@@ -51,7 +23,7 @@ Target: Git-defined Compose stacks deployed by Dokploy, named volumes for persis
 
 - Executor: moving to the hosted service; do not migrate the self-hosted instance into Dokploy. Keep its data and current service until hosted onboarding and integration replacement are verified. Hosted data migration/export capabilities have not been established.
 - LibreChat and the hub: being rebuilt; final deployment details are pending. Keep the current deployment unchanged and do not design its Dokploy stack until those details are settled.
-- Other services: see the [inventory](INVENTORY.md). Actual Budget is the proposed pilot, redone as a fresh install rather than migrated.
+- Other services: see the [inventory](INVENTORY.md). Actual Budget moves first, with its existing data.
 - Open Terminal and the Pi connection (connector and laptop gateway): planned for retirement; not migrating. Preserve their data when retired.
 - Hermes: retired (stopped and disabled 2026-11-06, data preserved). A future agent backend gets its own Proxmox VM, outside Dokploy; its design is pending.
 - Public blog: separate Droplet deployment; excluded from this migration.
@@ -180,7 +152,7 @@ Retire it only after every retained service and host-level dependency has a repl
 ## Next decisions
 
 1. Legacy backup gaps from the [audit](INVENTORY.md#live-audit-2026-11-06) (named volumes, live database copies) are accepted until migration: the legacy host is being replaced, so they won't be fixed in place. Each migrated service must get correct backups in Dokploy instead.
-2. Pilot: fresh Actual Budget install (confirmed). Whether the new instance needs an Actual MCP server is deferred.
+2. Actual Budget: migrate with existing data (the budget may be reset later in the app). An Actual MCP server is deferred.
 3. Dokploy setup on the current host is complete: owner account, Cloudflare DNS challenge, `dokploy.develium.dev`, S3 destination. Next: schedule the Dokploy platform backup to S3, then deploy the Actual pilot. The Proxmox move happens later.
 4. Decide where custom images will live (private registry or documented rebuild), and how secrets will be recorded outside Dokploy.
 5. Apply hub/LibreChat deployment details when the rebuild settles them.
