@@ -23,6 +23,7 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
       VAPID_CLAIMS_EMAIL: ${VAPID_CLAIMS_EMAIL}
       PUSH_NOTIFY_TOKEN: ${PUSH_NOTIFY_TOKEN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     volumes:
       - app-data:/app/data
     healthcheck:
