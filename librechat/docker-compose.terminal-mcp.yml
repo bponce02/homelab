@@ -1,3 +1,0 @@
-services:
-  terminal-mcp:
-    image: local/librechat-terminal-mcp:59cbb67
