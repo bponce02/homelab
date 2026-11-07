@@ -10,8 +10,8 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | --- | --- |
 | `<service>/compose.yaml` | A service deployed by Dokploy (`actual-budget`, `personal-management`) |
 | `host/ufw-docker.rules` | Firewall rules that keep Docker-published ports Tailscale-only |
-| `caddy/`, `backrest/`, `homepage/`, `dozzle/`, `stirlingpdf/`, `librechat/`, `llm/`, `static/` | Legacy Compose stacks, removed as each service moves to Dokploy |
-| `config/` | Legacy configuration referenced by those stacks |
+| `caddy/`, `backrest/`, `stirlingpdf/`, `librechat/`, `llm/` | Legacy Compose stacks, removed as each service moves to Dokploy |
+| `config/` (server only, not in Git) | Legacy env files and data folders referenced by those stacks |
 
 ## Services
 
@@ -19,9 +19,8 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | --- | --- | --- | --- | --- |
 | Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
 | Personal Management | Dokploy (`personal-management`) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
-| Homepage, Dozzle, Stirling PDF | Legacy | `homepage.`, `dozzle.`, `pdf.develium.dev` | Folders under `config/volumes/` | Backrest |
-| LibreChat (with MongoDB, history MCP, Ollama, Camofox) | Legacy; being rebuilt | `librechat.develium.dev` | `config/volumes/librechat/`, `llm/ollama` | Backrest (Mongo copied live) |
-| Executor | Legacy; moving to the hosted version | `executor.develium.dev` | Volume `executor_executor-user-data` | None (named volume) |
+| Stirling PDF | Legacy | `pdf.develium.dev` | `config/volumes/stirlingpdf/` | Backrest |
+| LibreChat (with MongoDB, history MCP, Camofox) | Legacy; being rebuilt | `librechat.develium.dev` | `config/volumes/librechat/` | Backrest (Mongo copied live) |
 | Backrest, Caddy | Legacy infrastructure | `backrest.develium.dev` | `config/volumes/{backrest,caddy}`, volume `caddy_tailscale-state` | — |
 
 ## Network and access
@@ -96,18 +95,22 @@ Until each service moves, the server runs the old stacks from its own checkout, 
 cd /home/melissa/homelab && sudo docker compose -f <service>/docker-compose.yml up -d
 ```
 
-Caddy (`caddy/`) runs inside a Tailscale sidecar container and serves the wildcard routes. Backrest (`backrest/`) has its configuration in Bitwarden.
+Caddy (`caddy/`) runs inside a Tailscale sidecar container and serves the wildcard routes (`pdf`, `backrest`, `librechat`). Backrest (`backrest/`) has its configuration in Bitwarden.
 
-## Retired (stopped; data preserved)
+## Retired (data preserved)
 
 Don't delete or prune this data without explicit approval.
 
-- **Open Terminal, `open-terminal-mcp`, `agent-desktop`:** stopped 2026-11-07. Volume `llm_terminal-home`, `config/env/llm/open-terminal.env`. LibreChat's terminal tools no longer work.
-- **Pi Codex connector and laptop Pi gateway:** stopped 2026-11-07. `config/{env,volumes}/pi-connectors/`, the laptop's `pi-session-gateway` user service (disabled), and `/home/melissa/homelab-releases/`.
-- **Open WebUI:** stopped 2026-11-07. `config/volumes/llm/openwebui/`.
+- **Open Terminal, `open-terminal-mcp`, `agent-desktop`:** containers removed 2026-11-07. Volume `llm_terminal-home`, `config/env/llm/open-terminal.env`. LibreChat's terminal tools no longer work.
+- **Pi Codex connector and laptop Pi gateway:** container removed and gateway disabled 2026-11-07. `config/{env,volumes}/pi-connectors/`, the laptop's `pi-session-gateway` user service (disabled), and `/home/melissa/homelab-releases/`.
+- **Open WebUI:** container removed 2026-11-07. `config/volumes/llm/openwebui/`.
 - **Hermes:** stopped 2026-11-06. `~/.hermes` and its systemd user units.
 - **Legacy Actual:** containers removed 2026-11-07. `config/volumes/actual-data`, `config/volumes/actual-mcp-v267`.
 - **Legacy Personal Management:** container removed 2026-11-07. `config/volumes/personal-management/data`, `config/env/personal-management/.env`, unused volume `personal-management_app-data`.
+- **Executor:** moved to the hosted version; container removed 2026-11-07. Volumes `executor_executor-user-data`, `executor_executor-data`, `executor_executor-local-data`, and `/root/executor-manual-owner-backup/`.
+- **Ollama:** removed 2026-11-07. Models in `llm/ollama` (31 GB, re-downloadable). LibreChat's Ollama endpoint no longer works.
+- **Homepage, Dozzle, static site:** removed 2026-11-07. `config/volumes/homepage/`.
+- **Blog on this host:** container removed 2026-11-07 (the blog runs on the Droplet). `config/volumes/blog/`.
 - **CLIProxyAPI, Nextcloud, Todo, Komodo, Authentik, n8n, Paperless, Vikunja, Wetty:** directories under `config/` and Komodo's `komodo_*` volumes.
 
 Their Compose files and docs remain in Git history.

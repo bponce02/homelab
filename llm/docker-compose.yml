@@ -1,16 +1,4 @@
 services:
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
-    environment:
-      - OLLAMA_NUM_GPU=0             # set 0 for CPU-only, omit if you have a GPU
-      - OLLAMA_NUM_THREADS=${THREADS:-2}
-    volumes:
-      - ./ollama:/root/.ollama
-    networks:
-      - proxy
-
   camofox:
     image: ghcr.io/redf0x1/camofox-browser:2.4.7
     container_name: camofox
