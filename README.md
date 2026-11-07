@@ -16,7 +16,7 @@ Everything on the host now runs through Dokploy. The old hand-started Compose st
 | Service | Runs on | URL | Data | Backup |
 | --- | --- | --- | --- | --- |
 | Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
-| Personal Management | Dokploy (`personal-management`) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
+| Personal Management | Dokploy (`personal-management`); builds `bponce02/personal-management` `main` on each **Deploy** click (no auto-deploy: GitHub webhooks can't reach the private Dokploy) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
 
 ## Network and access
 

@@ -1,12 +1,13 @@
-# Personal Management on Dokploy. Built from the private repository at a pinned commit.
+# Personal Management on Dokploy. Built from the private repository's main branch:
+# click Deploy in Dokploy to build and run the latest commit.
 # Values in ${...} come from the service's Environment tab in Dokploy.
 services:
   web:
     build:
-      context: https://github.com/bponce02/personal-management.git#7af02cc9661773c1e9ac1b4465faee10f6fc7071
+      context: https://github.com/bponce02/personal-management.git#main
       secrets:
         - GIT_AUTH_TOKEN
-    image: personal-management:7af02cc
+    image: personal-management:main
     restart: unless-stopped
     environment:
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
