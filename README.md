@@ -10,7 +10,7 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | --- | --- |
 | `<service>/compose.yaml` | A service deployed by Dokploy (`actual-budget`, `personal-management`) |
 | `host/ufw-docker.rules` | Firewall rules that keep Docker-published ports Tailscale-only |
-| `caddy/`, `backrest/`, `stirlingpdf/`, `librechat/`, `llm/` | Legacy Compose stacks, removed as each service moves to Dokploy |
+| `caddy/`, `backrest/`, `stirlingpdf/`, `librechat/` | Legacy Compose stacks, removed as each service moves to Dokploy |
 | `config/` (server only, not in Git) | Legacy env files and data folders referenced by those stacks |
 
 ## Services
@@ -20,7 +20,7 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
 | Personal Management | Dokploy (`personal-management`) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
 | Stirling PDF | Legacy | `pdf.develium.dev` | `config/volumes/stirlingpdf/` | Backrest |
-| LibreChat (with MongoDB, history MCP, Camofox) | Legacy; being rebuilt | `librechat.develium.dev` | `config/volumes/librechat/` | Backrest (Mongo copied live) |
+| LibreChat (with MongoDB, history MCP, Camofox) | Legacy; being rebuilt. Camofox still runs from the server checkout's `llm/` stack, which is no longer in this repo | `librechat.develium.dev` | `config/volumes/librechat/` | Backrest (Mongo copied live) |
 | Backrest, Caddy | Legacy infrastructure | `backrest.develium.dev` | `config/volumes/{backrest,caddy}`, volume `caddy_tailscale-state` | — |
 
 ## Network and access
@@ -123,7 +123,7 @@ Don't delete or prune this data without explicit approval.
 - **Legacy Actual:** containers removed 2026-11-07. `config/volumes/actual-data`, `config/volumes/actual-mcp-v267`.
 - **Legacy Personal Management:** container removed 2026-11-07. `config/volumes/personal-management/data`, `config/env/personal-management/.env`, unused volume `personal-management_app-data`.
 - **Executor:** moved to the hosted version; container removed 2026-11-07. Volumes `executor_executor-user-data`, `executor_executor-data`, `executor_executor-local-data`, and `/root/executor-manual-owner-backup/`.
-- **Ollama:** removed 2026-11-07. Models in `llm/ollama` (31 GB, re-downloadable). LibreChat's Ollama endpoint no longer works.
+- **Ollama:** removed 2026-11-07. Models in `/home/melissa/homelab/llm/ollama` on the server (31 GB, re-downloadable). LibreChat's Ollama endpoint no longer works.
 - **Homepage, Dozzle, static site:** removed 2026-11-07. `config/volumes/homepage/`.
 - **Blog on this host:** container removed 2026-11-07 (the blog runs on the Droplet). `config/volumes/blog/`.
 - **CLIProxyAPI, Nextcloud, Todo, Komodo, Authentik, n8n, Paperless, Vikunja, Wetty:** directories under `config/` and Komodo's `komodo_*` volumes.
