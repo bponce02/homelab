@@ -10,8 +10,6 @@ The migration to Dokploy is in progress: some services still run as hand-started
 | --- | --- |
 | `<service>/compose.yaml` | A service deployed by Dokploy (`actual-budget`, `personal-management`) |
 | `host/ufw-docker.rules` | Firewall rules that keep Docker-published ports Tailscale-only |
-| `caddy/`, `backrest/`, `stirlingpdf/`, `librechat/` | Legacy Compose stacks, removed as each service moves to Dokploy |
-| `config/` (server only, not in Git) | Legacy env files and data folders referenced by those stacks |
 
 ## Services
 
@@ -104,13 +102,13 @@ Dokploy runs these backups automatically and uploads them to the private Digital
 
 ## Legacy stack
 
-Until each service moves, the server runs the old stacks from its own checkout, `/home/melissa/homelab`. That checkout has diverged from this repository: its files were edited in place. Treat it as the source of truth for those services:
+LibreChat (with MongoDB, history MCP and Camofox), Stirling PDF, Caddy and Backrest are not defined in this repository. The server runs them from its own checkout, `/home/melissa/homelab`, which is the only source for their Compose files and configuration (their earlier versions are in this repository's Git history). Each one gets a `<service>/compose.yaml` here when it moves to Dokploy.
 
 ```bash
 cd /home/melissa/homelab && sudo docker compose -f <service>/docker-compose.yml up -d
 ```
 
-Caddy (`caddy/`) runs inside a Tailscale sidecar container and serves the wildcard routes (`pdf`, `backrest`, `librechat`). Backrest (`backrest/`) has its configuration in Bitwarden.
+Caddy runs inside a Tailscale sidecar container and serves the wildcard routes (`pdf`, `backrest`, `librechat`). Backrest's configuration is in Bitwarden. Env files and data for these services live under `/home/melissa/homelab/config/` on the server.
 
 ## Retired (data preserved)
 

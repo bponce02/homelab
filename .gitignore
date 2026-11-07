@@ -1,17 +1,6 @@
-config/volumes/backrest/config/config.json
-config/env/*/.env
-config/env/openrouter.env
-config/env/librechat/history-mcp.env
-config/env/librechat/fork.env
-librechat/fork-build/
-config/env/executor.env
-config/env/executor-openwebui.env
-config/env/executor-local.env
-config/env/llm/*.env
-config/env/stirlingpdf/*.env
-config/env/cliproxyapi/
-config/volumes/cliproxyapi/
-config/env/pi-connectors/
-config/volumes/pi-connectors/
-personal-management/.env
+# Keep secrets and local build output out of Git
+.env
+*.env
+config/
 node_modules/
+__pycache__/
