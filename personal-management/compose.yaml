@@ -9,7 +9,7 @@ services:
         - GIT_AUTH_TOKEN
     image: personal-management:main
     restart: unless-stopped
-    environment:
+    environment: &app-env
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
       ALLOWED_HOSTS: per.develium.dev
       CSRF_TRUSTED_ORIGINS: https://per.develium.dev
@@ -32,6 +32,23 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    networks:
+      - dokploy-network
+
+  # Background worker for the workspace agent (same image, separate process).
+  # The app shows the agent as offline unless this is running.
+  agent:
+    image: personal-management:main
+    pull_policy: never
+    restart: unless-stopped
+    entrypoint: ["python", "manage.py", "run_agent"]
+    environment: *app-env
+    volumes:
+      - app-data:/app/data
+    depends_on:
+      web:
+        condition: service_healthy
+    stop_grace_period: 90s
     networks:
       - dokploy-network
 
