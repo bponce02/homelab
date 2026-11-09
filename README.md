@@ -16,7 +16,7 @@ Everything on the host now runs through Dokploy. The old hand-started Compose st
 | Service | Runs on | URL | Data | Backup |
 | --- | --- | --- | --- | --- |
 | Actual Budget | Dokploy (`actual-budget`) | `actual.develium.dev` | Volume `actual-budget-kbggec_actual-data` | Dokploy volume backup, daily |
-| Personal Management | Dokploy (`personal-management`); builds `bponce02/personal-management` `main` on each **Deploy** click (no auto-deploy: GitHub webhooks can't reach the private Dokploy) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
+| Personal Management | Dokploy (`personal-management`, web and agent containers); builds `bponce02/personal-management` `main` and auto-deploys new commits within a few minutes ([watcher](#personal-management-auto-deploy)) | `per.develium.dev` | Volume `personal-management-ppbblm_app-data` (SQLite and uploads) | Dokploy volume backup, daily |
 
 ## Network and access
 
@@ -74,6 +74,15 @@ Manual steps, in order. A Proxmox VM is the planned long-term host: use a full V
 3. For existing data: stop the old container, `docker volume create <appName>_<volume>`, copy the data in (`cp -a`), then deploy. Compose adopts the existing volume.
 4. Check the service over the Tailscale IP (`curl --resolve <host>:443:100.126.9.60 …`), then add its DNS-only A record.
 5. Add a volume backup (stop the container during the backup, keep 14). Run it once, then remove the old container.
+
+## Personal Management auto-deploy
+
+GitHub webhooks can't reach the private Dokploy, so a Dokploy schedule polls instead. **Settings → Schedules → "personal-management watcher"** (type `dokploy-server`, every 2 minutes) runs [`personal-management/watcher.sh`](personal-management/watcher.sh) inside the Dokploy container:
+
+- It reads the latest `main` commit of `bponce02/personal-management` with the service's own `GIT_AUTH_TOKEN`, from the env file Dokploy writes on each deploy.
+- If the commit changed, it calls the service's deploy webhook on `127.0.0.1:3000`. That requires **Autodeploy** to be on for the service. It then stores the commit in `/etc/dokploy/schedules/pm-watcher/last-commit`.
+- The first run only records the current commit. A failed build isn't retried for the same commit: click **Deploy** after fixing it, or push again.
+- The repo copy has `__REFRESH_TOKEN__` where the live script has the service's deploy token (General → Deploy webhook URL).
 
 ## Backups
 
