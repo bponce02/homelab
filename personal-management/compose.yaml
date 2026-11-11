@@ -13,6 +13,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
       ALLOWED_HOSTS: per.develium.dev
       CSRF_TRUSTED_ORIGINS: https://per.develium.dev
+      TIME_ZONE: America/New_York
       DEBUG: "False"
       DJANGO_VITE_DEV_MODE: "False"
       DB_PATH: /app/data/db.sqlite3
