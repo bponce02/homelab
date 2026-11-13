@@ -43,7 +43,11 @@ services:
     pull_policy: never
     restart: unless-stopped
     entrypoint: ["python", "manage.py", "run_agent"]
-    environment: *app-env
+    environment:
+      <<: *app-env
+      OPEN_SANDBOX_ENABLED: ${OPEN_SANDBOX_ENABLED:-False}
+      OPEN_SANDBOX_DOMAIN: ${OPEN_SANDBOX_DOMAIN:-opensandbox:8090}
+      OPEN_SANDBOX_API_KEY: ${OPEN_SANDBOX_API_KEY:?set OPEN_SANDBOX_API_KEY}
     volumes:
       - app-data:/app/data
     depends_on:
@@ -52,6 +56,7 @@ services:
     stop_grace_period: 90s
     networks:
       - dokploy-network
+      - hub-sandbox-control
 
 secrets:
   # GitHub token with read access to the private repository; BuildKit uses this
@@ -64,4 +69,6 @@ volumes:
 
 networks:
   dokploy-network:
+    external: true
+  hub-sandbox-control:
     external: true
